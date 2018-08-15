@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<solver>
+  <!--<environmentMode>FAST_ASSERT</environmentMode>-->
+  <scanAnnotatedClasses/>
+
+  <scoreDirectorFactory>
+    <scoreDrl>org/optaplanner/training/workerrostering/solver/workerRosteringScoreRules.drl</scoreDrl>
+  </scoreDirectorFactory>
+
+  <termination>
+    <secondsSpentLimit>30</secondsSpentLimit>
+  </termination>
+
+</solver>
