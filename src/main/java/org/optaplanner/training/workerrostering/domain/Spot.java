@@ -30,6 +30,10 @@ public class Spot {
         return name;
     }
 
+    public String getShiftType() {
+        return name.split("_")[0];
+    }
+
     public Skill getRequiredSkill() {
         return requiredSkill;
     }

@@ -17,6 +17,7 @@
 package org.optaplanner.training.workerrostering.domain;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.optaplanner.core.api.domain.solution.PlanningEntityCollectionProperty;
 import org.optaplanner.core.api.domain.solution.PlanningScore;
@@ -85,6 +86,11 @@ public class Roster {
         return shiftAssignmentList;
     }
 
+    public List<ShiftAssignment> getEmployeeAssignments(Employee emp) {
+    	return shiftAssignmentList.stream()
+    			.filter(s -> s.getEmployee().getName().equals(emp.getName()))
+    			.collect(Collectors.toList());
+    }
     public HardSoftScore getScore() {
         return score;
     }

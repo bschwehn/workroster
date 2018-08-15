@@ -17,12 +17,14 @@
 package org.optaplanner.training.workerrostering.domain;
 
 import java.time.LocalDateTime;
+import java.time.temporal.WeekFields;
 
 public class TimeSlot {
 
     private final LocalDateTime startDateTime;
     private final LocalDateTime endDateTime;
 
+    // todo: remove
     private TimeSlotState timeSlotState;
 
     public TimeSlot(LocalDateTime startDateTime, LocalDateTime endDateTime) {
@@ -32,6 +34,10 @@ public class TimeSlot {
 
     public LocalDateTime getStartDateTime() {
         return startDateTime;
+    }
+    
+    public String getSlotName() {
+    	return "KW " + this.getStartDateTime().get(WeekFields.ISO.weekOfYear());	
     }
 
     public LocalDateTime getEndDateTime() {

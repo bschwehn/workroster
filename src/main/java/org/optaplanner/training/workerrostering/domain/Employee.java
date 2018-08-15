@@ -16,6 +16,7 @@
 
 package org.optaplanner.training.workerrostering.domain;
 
+import java.util.Objects;
 import java.util.Set;
 
 public class Employee {
@@ -34,6 +35,13 @@ public class Employee {
         return name;
     }
 
+    public String getInfo() {
+        String info = name + " |";
+        for (Skill s : getSkillSet()) {
+        	info += s + "|";
+        }
+        return info;
+    }
     public Set<Skill> getSkillSet() {
         return skillSet;
     }
@@ -44,6 +52,11 @@ public class Employee {
 
     public void setUnavailableTimeSlotSet(Set<TimeSlot> unavailableTimeSlotSet) {
         this.unavailableTimeSlotSet = unavailableTimeSlotSet;
+    }
+
+    public Boolean getHasSkill(Skill skill) {
+    	if ("any".equals(skill.toString())) return true;
+    	return getSkillSet().contains(skill);
     }
 
     @Override

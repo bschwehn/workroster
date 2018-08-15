@@ -39,7 +39,8 @@ rule "Required skill for a shift"
     when
         ShiftAssignment(
                 employee != null,
-                !getEmployee().getSkillSet().contains(getSpot().getRequiredSkill()))
+                !getEmployee().getHasSkill(getSpot().getRequiredSkill())
+                )
     then
         scoreHolder.addHardConstraintMatch(kcontext, -100);
 end
@@ -101,7 +102,7 @@ rule "Fairness: all employees should work about the same number of shifts"
         scoreHolder.addSoftConstraintMatch(kcontext, - ($total.intValue() * $total.intValue()));
 end
 
-rule "Affinity: assign an employee to the same spot as much as possible"
+/*rule "Affinity: assign an employee to the same spot as much as possible"
     when
         $s : Spot()
         $e : Employee()
@@ -116,3 +117,4 @@ rule "Affinity: assign an employee to the same spot as much as possible"
         // Positive to anti-balance it across spot-employee pairs
         scoreHolder.addSoftConstraintMatch(kcontext, ($total.intValue() * $total.intValue()));
 end
+*/

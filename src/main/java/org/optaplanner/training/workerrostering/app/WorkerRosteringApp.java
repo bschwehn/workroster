@@ -21,18 +21,23 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.Locale;
+import java.util.Map;
 
+import org.optaplanner.core.api.solver.Solver;
 import org.optaplanner.core.api.solver.SolverFactory;
+import org.optaplanner.core.impl.score.director.ScoreDirector;
 import org.optaplanner.training.workerrostering.domain.Roster;
 import org.optaplanner.training.workerrostering.persistence.WorkerRosteringGenerator;
 import org.optaplanner.training.workerrostering.persistence.WorkerRosteringSolutionFileIO;
+import org.optaplanner.training.workerrostering.persistence.WorkerRosteringSolutionFileWeeksIO;
 
 public class WorkerRosteringApp {
 
     public static void main(String[] args) {
-        String filename = "roster_anna_1";
-        WorkerRosteringSolutionFileIO solutionFileIO = new WorkerRosteringSolutionFileIO();
+        String filename = "roster_anna_2";
+        WorkerRosteringSolutionFileWeeksIO solutionFileIO = new WorkerRosteringSolutionFileWeeksIO();
         Roster roster = solutionFileIO.read(new File("data/workerrostering/import/" + filename + ".xlsx"));
         // WorkerRosteringGenerator generator = new WorkerRosteringGenerator();
          //Roster roster = generator.generateRoster(100, 28, false);
@@ -40,7 +45,12 @@ public class WorkerRosteringApp {
         // LAB-SOLUTION-START
         SolverFactory<Roster> solverFactory = SolverFactory.createFromXmlResource(
                 "org/optaplanner/training/workerrostering/solver/workerRosteringSolverConfig.xml");
-        roster = solverFactory.buildSolver().solve(roster);
+        Solver<Roster> solver = solverFactory.buildSolver();
+        roster = solver.solve(roster);
+        ScoreDirector<Roster> score = solver.getScoreDirectorFactory().buildScoreDirector();
+        score.setWorkingSolution(solver.getBestSolution());
+        Collection<?> matchTotals = score.getConstraintMatchTotals();
+        Map<?, ?> indictment = score.extractIndictmentMap();
         // LAB-SOLUTION-END
 
         File outputSolutionFile = new File("data/workerrostering/export/" + filename + "-solved"
