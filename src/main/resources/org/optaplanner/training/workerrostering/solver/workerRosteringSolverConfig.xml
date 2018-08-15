@@ -8,7 +8,7 @@
   </scoreDirectorFactory>
 
   <termination>
-    <secondsSpentLimit>30</secondsSpentLimit>
+    <secondsSpentLimit>3</secondsSpentLimit>
   </termination>
 
 </solver>

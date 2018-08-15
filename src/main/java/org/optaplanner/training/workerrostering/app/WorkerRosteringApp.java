@@ -47,15 +47,11 @@ public class WorkerRosteringApp {
                 "org/optaplanner/training/workerrostering/solver/workerRosteringSolverConfig.xml");
         Solver<Roster> solver = solverFactory.buildSolver();
         roster = solver.solve(roster);
-        ScoreDirector<Roster> score = solver.getScoreDirectorFactory().buildScoreDirector();
-        score.setWorkingSolution(solver.getBestSolution());
-        Collection<?> matchTotals = score.getConstraintMatchTotals();
-        Map<?, ?> indictment = score.extractIndictmentMap();
         // LAB-SOLUTION-END
 
         File outputSolutionFile = new File("data/workerrostering/export/" + filename + "-solved"
                 + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss", Locale.ENGLISH)) + ".xlsx");
-        solutionFileIO.write(roster, outputSolutionFile);
+        solutionFileIO.write(roster, solver, outputSolutionFile);
         Desktop desktop = Desktop.getDesktop();
         if (desktop.isSupported(Desktop.Action.OPEN)) {
             try {
