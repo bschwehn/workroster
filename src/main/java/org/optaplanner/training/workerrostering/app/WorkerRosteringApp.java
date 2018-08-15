@@ -31,11 +31,11 @@ import org.optaplanner.training.workerrostering.persistence.WorkerRosteringSolut
 public class WorkerRosteringApp {
 
     public static void main(String[] args) {
-        String filename = "roster-10spots-28days";
+        String filename = "roster_anna_1";
         WorkerRosteringSolutionFileIO solutionFileIO = new WorkerRosteringSolutionFileIO();
         Roster roster = solutionFileIO.read(new File("data/workerrostering/import/" + filename + ".xlsx"));
         // WorkerRosteringGenerator generator = new WorkerRosteringGenerator();
-        // Roster roster = generator.generateRoster(10, 28);
+         //Roster roster = generator.generateRoster(100, 28, false);
 
         // LAB-SOLUTION-START
         SolverFactory<Roster> solverFactory = SolverFactory.createFromXmlResource(

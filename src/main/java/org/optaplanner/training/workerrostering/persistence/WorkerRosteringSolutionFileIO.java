@@ -30,6 +30,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -46,6 +47,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.omg.PortableInterceptor.NON_EXISTENT;
 import org.optaplanner.persistence.common.api.domain.solution.SolutionFileIO;
 import org.optaplanner.training.workerrostering.domain.Employee;
 import org.optaplanner.training.workerrostering.domain.Roster;
@@ -68,8 +70,13 @@ public class WorkerRosteringSolutionFileIO implements SolutionFileIO<Roster> {
             = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
 
     private static final IndexedColors NON_EXISTING_COLOR = IndexedColors.GREY_80_PERCENT;
+    private static final String NON_EXISTING_COLOR_STRING = "FF333333";
+
     private static final IndexedColors LOCKED_BY_USER_COLOR = IndexedColors.VIOLET;
+    private static final String LOCKED_BY_USER_COLOR_STRING= "FFFF00CC";
+
     private static final IndexedColors UNAVAILABLE_COLOR = IndexedColors.BLUE_GREY;
+    private static final String UNAVAILABLE_COLOR_STRING= "FF6666FF";
 
     @Override
     public String getInputFileExtension() {
@@ -188,6 +195,7 @@ public class WorkerRosteringSolutionFileIO implements SolutionFileIO<Roster> {
                 }
                 return employee;
             }, timeSlotList, (Pair<Employee, TimeSlot> pair, Cell cell) ->  {
+            	if (cell == null) return null;
                 if (hasStyle(cell, UNAVAILABLE_COLOR)) {
                     Employee employee = pair.getKey();
                     TimeSlot timeSlot = pair.getValue();
@@ -232,6 +240,10 @@ public class WorkerRosteringSolutionFileIO implements SolutionFileIO<Roster> {
                 Row row = sheet.getRow(i);
                 if (row == null) {
                     continue;
+                }
+                Cell firstCell = row.getCell(0);
+                if (firstCell == null) {
+                	break;
                 }
                 for (int j = 0; j < headerTitles.length; j++) {
                     Cell cell = row.getCell(j);
@@ -296,11 +308,7 @@ public class WorkerRosteringSolutionFileIO implements SolutionFileIO<Roster> {
                 for (int j = 0; j < timeSlotList.size(); j++) {
                     TimeSlot timeSlot = timeSlotList.get(j);
                     Cell cell = row.getCell(headerTitles.length + j);
-                    if (cell == null) {
-                        throw new IllegalStateException("The sheet (" + sheetName
-                                + ") has no cell for " + headerTitles[j]
-                                + " at row (" + i + ") at column (" + j + ").");
-                    }
+                    
                     F cellElement = cellMapper.apply(Pair.of(rowElement, timeSlot), cell);
                     if (cellElement != null) {
                         cellElementList.add(cellElement);
@@ -311,10 +319,27 @@ public class WorkerRosteringSolutionFileIO implements SolutionFileIO<Roster> {
         }
 
         private boolean hasStyle(Cell cell, IndexedColors color) {
-            return cell.getCellStyle().getFillForegroundColor() == color.getIndex()
+           Boolean isIndexedMatch = cell.getCellStyle().getFillForegroundColor() == color.getIndex()
                     && cell.getCellStyle().getFillPattern() == CellStyle.SOLID_FOREGROUND;
+           if (isIndexedMatch) return true;
+           
+           if (cell.getCellStyle().getFillBackgroundColor() == 0) {
+        	   org.apache.poi.xssf.usermodel.XSSFColor col = 
+        			   (org.apache.poi.xssf.usermodel.XSSFColor)cell.getCellStyle().getFillForegroundColorColor();
+        	   if (col != null) {
+        		  if (color == NON_EXISTING_COLOR) {
+        			  return Objects.equals(col.getARGBHex(), NON_EXISTING_COLOR_STRING);
+        		  }
+        		  if (color == LOCKED_BY_USER_COLOR) {
+        			  return Objects.equals(col.getARGBHex(), LOCKED_BY_USER_COLOR_STRING);
+        		  }
+        		  if (color == UNAVAILABLE_COLOR) {
+        			  return Objects.equals(col.getARGBHex(), UNAVAILABLE_COLOR_STRING);
+        		  }
+        	   }
+           }
+           return false;
         }
-
     }
 
     @Override
