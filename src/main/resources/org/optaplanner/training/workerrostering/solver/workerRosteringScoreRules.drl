@@ -17,7 +17,8 @@
 package org.optaplanner.examples.workerrostering.solver;
     dialect "java"
 
-import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScoreHolder;
+//import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScoreHolder;
+import org.optaplanner.core.api.score.buildin.hardmediumsoft.HardMediumSoftScoreHolder;
 
 import org.optaplanner.training.workerrostering.domain.Employee;
 import org.optaplanner.training.workerrostering.domain.Roster;
@@ -30,10 +31,11 @@ import org.optaplanner.training.workerrostering.domain.TimeSlot;
 import org.apache.commons.lang3.tuple.Pair;
 import accumulate org.optaplanner.training.workerrostering.solver.drools.functions.LoadBalanceByCountAccumulateFunction loadBalanceByCount;
 import accumulate org.optaplanner.training.workerrostering.solver.drools.functions.LoadBalanceAccumulateFunction loadBalance;
+import accumulate org.optaplanner.training.workerrostering.solver.drools.functions.MaxDeviationAccumulateFunction maxDeviation;
 
 import java.time.temporal.ChronoUnit;
 
-global HardSoftScoreHolder scoreHolder;
+global HardMediumSoftScoreHolder scoreHolder;
 
 // ############################################################################
 // Hard constraints
@@ -93,10 +95,37 @@ rule "Undesirable time slots for an employee"
                 employee != null,
                 getEmployee().getUndesirableTimeSlotSet().contains(getTimeSlot()))
     then
-        scoreHolder.addHardConstraintMatch(kcontext, -1);
+        scoreHolder.addMediumConstraintMatch(kcontext, -1000);
 end
-// TODO Pseudo weekends: Get a 48 hours rest every 9 days (so work at most 7 days before each 2-day weekend)
 
+rule "Fairness: all employees should work at max 1 shift more than other"
+    when
+        accumulate(
+        	$e : Employee() 
+        	and accumulate(
+				$s : ShiftAssignment(employee == $e, $c : getAdjustedCost());
+				$hours : sum($c)
+			);
+
+            $total : maxDeviation($hours)
+        )
+        //$f : $e.getDeviation($total);
+    then
+        // Fairness and load balancing trick (see docs): squared to assure correctness in corner cases
+        // Negative to balance it across employees
+        scoreHolder.addHardConstraintMatch(kcontext, - ($total.getMaxDeviationGreaterThan(2)));
+end
+
+rule "good/bad slots before vacation"
+    when
+        ShiftAssignment(
+        		$slot : timeSlot,
+        		$spot : spot,
+                employee != null,
+                getEmployee().getBeforeVacationTimeSlotSet().contains($slot))
+    then
+        scoreHolder.addMediumConstraintMatch(kcontext, $spot.getScoreBeforeVacation());
+end
 // ############################################################################
 // Soft constraints
 // ############################################################################
@@ -116,7 +145,61 @@ rule "Fairness: all employees should work about the same number of shifts, norma
     then
         // Fairness and load balancing trick (see docs): squared to assure correctness in corner cases
         // Negative to balance it across employees
-        scoreHolder.addSoftConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()));
+        scoreHolder.addMediumConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()));
+end
+
+rule "Fairness: all employees that only do SD should work about the same number of SD, normalized by empoyment status"
+    when
+        accumulate(
+        	$e : Employee(!canDoFD, !canDoND) 
+        	and accumulate(
+				$s : ShiftAssignment(employee == $e, spot.getShiftType() == "SD", $c : getAdjustedCost());
+				$hours : sum($c)
+			);
+
+            $total : loadBalance($hours)
+        )
+        //$f : $e.getDeviation($total);
+    then
+        // Fairness and load balancing trick (see docs): squared to assure correctness in corner cases
+        // Negative to balance it across employees
+        scoreHolder.addMediumConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()));
+end
+
+rule "Fairness: all employees that do FD should work about the same number of FD, normalized by empoyment status"
+    when
+        accumulate(
+        	$e : Employee(canDoFD) 
+        	and accumulate(
+				$s : ShiftAssignment(employee == $e, spot.getShiftType() == "FD", $c : getAdjustedCost());
+				$hours : sum($c)
+			);
+
+            $total : loadBalance($hours)
+        )
+        //$f : $e.getDeviation($total);
+    then
+        // Fairness and load balancing trick (see docs): squared to assure correctness in corner cases
+        // Negative to balance it across employees
+        scoreHolder.addMediumConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()));
+end
+
+rule "Fairness: all employees that do ND should work about the same number of ND, normalized by empoyment status"
+    when
+        accumulate(
+        	$e : Employee(canDoND) 
+        	and accumulate(
+				$s : ShiftAssignment(employee == $e, spot.getShiftType() == "ND", $c : getAdjustedCost());
+				$hours : sum($c)
+			);
+
+            $total : loadBalance($hours)
+        )
+        //$f : $e.getDeviation($total);
+    then
+        // Fairness and load balancing trick (see docs): squared to assure correctness in corner cases
+        // Negative to balance it across employees
+        scoreHolder.addMediumConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()));
 end
 
 /*rule "Fairness: all employees should work about the same number of shifts, normalized by hours and empoyment status"

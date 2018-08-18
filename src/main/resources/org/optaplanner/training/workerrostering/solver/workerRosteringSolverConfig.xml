@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <solver>
-  <!--<environmentMode>FAST_ASSERT</environmentMode>-->
+  <environmentMode>FAST_ASSERT</environmentMode>
   <scanAnnotatedClasses/>
 
   <scoreDirectorFactory>
@@ -8,7 +8,7 @@
   </scoreDirectorFactory>
 
   <termination>
-    <secondsSpentLimit>10</secondsSpentLimit>
+    <secondsSpentLimit>300</secondsSpentLimit>
   </termination>
 
 </solver>

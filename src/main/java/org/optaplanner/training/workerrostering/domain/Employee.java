@@ -26,24 +26,34 @@ public class Employee {
     // VIPs work less ;)
     private final Double vipFactor;
     private final Set<Skill> skillSet;
+    private Boolean canDoND;
+    private Boolean canDoFD;
 
     private Double expectedHours;
     private Set<TimeSlot> unavailableTimeSlotSet;
     private Set<TimeSlot> undesirableTimeSlotSet;
+    private Set<TimeSlot> beforeVacationTimeSlotSet;
 
     public Employee(String name, Set<Skill> skillSet, Double time, Double vipFactor) {
         this.name = name;
         this.skillSet = skillSet;
-        this.time = time;
+        //this.time = time;
         this.vipFactor = vipFactor;
+        this.time = time * (1-vipFactor/12);
+        init();
     }
     public Employee(String name, Set<Skill> skillSet) {
         this.name = name;
         this.skillSet = skillSet;
         this.time = 100.0;
         this.vipFactor = 0.0;
+        init();
     }
 
+    private void init() {
+    	this.canDoND = getCanDoND();
+    	this.canDoFD = getCanDoFD();
+    }
     public double getVIPFactor() {
         return vipFactor;
     }
@@ -87,12 +97,20 @@ public class Employee {
         return undesirableTimeSlotSet;
     }
 
+    public Set<TimeSlot> getBeforeVacationTimeSlotSet() {
+        return beforeVacationTimeSlotSet;
+    }
+
     public Set<TimeSlot> getUnavailableTimeSlotSet() {
         return unavailableTimeSlotSet;
     }
 
     public void setUnavailableTimeSlotSet(Set<TimeSlot> unavailableTimeSlotSet) {
         this.unavailableTimeSlotSet = unavailableTimeSlotSet;
+    }
+
+    public void setBeforeVacationTimeSlotSet(Set<TimeSlot> beforeVacationTimeSlotSet) {
+        this.beforeVacationTimeSlotSet = beforeVacationTimeSlotSet;
     }
 
     public void setUndesirableTimeSlotSet(Set<TimeSlot> undesirableTimeSlotSet) {
@@ -102,6 +120,15 @@ public class Employee {
     public Boolean getHasSkill(Skill skill) {
     	return getSkillSet().contains(skill);
     }
+    
+    public Boolean getCanDoND() {
+    	return getSkillSet().stream().anyMatch(s -> s.getName().equals("Night"));
+    }
+
+    public Boolean getCanDoFD() {
+    	return getSkillSet().stream().anyMatch(s -> s.getName().equals("Rö") || s.getName().equals("CT"));
+    }
+
     public Boolean getCanDoJob(Spot spot) {
     	Skill requiredSkill = spot.getRequiredSkill();
     	Boolean hasRequiredSkill = 

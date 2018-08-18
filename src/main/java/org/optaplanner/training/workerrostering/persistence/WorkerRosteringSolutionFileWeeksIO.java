@@ -152,7 +152,17 @@ public class WorkerRosteringSolutionFileWeeksIO {
 				catch (IllegalStateException e) {
 					System.out.println("ERROR: Expected number cell for time in employee " + name);
 				}
-				return new Spot(name, requiredSkill, unsuitableSkill, hours);
+				Double scoreBeforeWeekend = 0.0;
+				try {
+					Cell cell = row.getCell(4);
+					if (cell != null) {
+						scoreBeforeWeekend = cell.getNumericCellValue();
+					}
+				}
+				catch (IllegalStateException e) {
+					System.out.println("ERROR: Expected number cell for time in employee " + name);
+				}
+				return new Spot(name, requiredSkill, unsuitableSkill, hours, scoreBeforeWeekend.intValue());
 			});
 			Map<String, Spot> spotMap = spotList.stream().collect(Collectors.toMap(
 					Spot::getName, spot -> spot));
@@ -209,6 +219,7 @@ public class WorkerRosteringSolutionFileWeeksIO {
 				Employee employee = new Employee(name, skillSet, time, vipFactor);
 				employee.setUnavailableTimeSlotSet(new LinkedHashSet<>());
 				employee.setUndesirableTimeSlotSet(new LinkedHashSet<>());
+				employee.setBeforeVacationTimeSlotSet(new LinkedHashSet<>());
 				return employee;
 			});
 			Map<String, Employee> employeeMap = employeeList.stream().collect(Collectors.toMap(
@@ -237,6 +248,10 @@ public class WorkerRosteringSolutionFileWeeksIO {
 					}
 					employee.getUnavailableTimeSlotSet().add(timeSlot);
 					employee.getUndesirableTimeSlotSet().add(getNextTimeSlot(timeSlotList, timeSlot));
+					TimeSlot previousTimeSlot = getPreviousTimeSlot(timeSlotList, timeSlot);
+					if (!employee.getUnavailableTimeSlotSet().contains(previousTimeSlot)) {
+						employee.getBeforeVacationTimeSlotSet().add(previousTimeSlot);
+					}
 				}
 				return null;
 			});
@@ -249,6 +264,15 @@ public class WorkerRosteringSolutionFileWeeksIO {
 			for (int i = 0; i < slots.size() - 1; ++i) {
 				if (slots.get(i) == slot) {
 					return slots.get(i+1);
+				}
+			}
+			return null;
+		}
+
+		private TimeSlot getPreviousTimeSlot(List<TimeSlot> slots, TimeSlot slot) {
+			for (int i = 1; i < slots.size(); ++i) {
+				if (slots.get(i) == slot) {
+					return slots.get(i-1);
 				}
 			}
 			return null;
@@ -514,10 +538,18 @@ public class WorkerRosteringSolutionFileWeeksIO {
 			});
 			writeListSheet("Spots", new String[]{"Name", "Required skill", "Unsuitable Skill"}, roster.getSpotList(), (Row row, Spot spot) -> {
 				row.createCell(0).setCellValue(spot.getName());
+				Skill requiredSkill = spot.getRequiredSkill();
+				if (requiredSkill != null) {
+					row.createCell(1).setCellValue(spot.getRequiredSkill().getName());
+				}
 				Skill unsuitableSkill = spot.getUnsuitableSkill();
 				if (unsuitableSkill != null) {
 					row.createCell(2).setCellValue(spot.getUnsuitableSkill().getName());
 				}
+				Double hours = spot.getHours();
+				row.createCell(3).setCellValue(hours);
+				int score = spot.getScoreBeforeVacation();
+				row.createCell(4).setCellValue(score);
 			});
 			writeListSheet("Skills", new String[]{"Name"}, roster.getSkillList(), (Row row, Skill skill) -> {
 				row.createCell(0).setCellValue(skill.getName());

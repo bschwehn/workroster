@@ -22,12 +22,14 @@ public class Spot {
     private final Skill requiredSkill;
     private final Skill unsuitableSkill;
     private final Double hours;
+    private final int scoreBeforeVacation;
 
-    public Spot(String name, Skill requiredSkill, Skill unsuitableSkill, Double hours) {
+    public Spot(String name, Skill requiredSkill, Skill unsuitableSkill, Double hours, int scoreBeforeVacation) {
         this.name = name;
         this.requiredSkill = requiredSkill;
         this.unsuitableSkill = unsuitableSkill;
         this.hours = hours;
+        this.scoreBeforeVacation = scoreBeforeVacation;
     }
 
     public Spot(String name, Skill requiredSkill) {
@@ -35,6 +37,7 @@ public class Spot {
         this.requiredSkill = requiredSkill;
         this.unsuitableSkill = null;
         this.hours = 8.0;
+        this.scoreBeforeVacation = 0;
     }
 
     public String getName() {
@@ -47,6 +50,10 @@ public class Spot {
 
     public Skill getRequiredSkill() {
         return requiredSkill;
+    }
+
+    public int getScoreBeforeVacation() {
+        return scoreBeforeVacation;
     }
 
     public Skill getUnsuitableSkill() {

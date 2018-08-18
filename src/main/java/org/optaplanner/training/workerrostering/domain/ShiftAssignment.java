@@ -82,7 +82,7 @@ public class ShiftAssignment implements Serializable {
     }
 
     public long getAdjustedCost() {
-    	return (long)(spot.getHours() * 1000 / employee.getTime());
+    	return (long)(spot.getHours() * 100 / employee.getTime());
     }
 
 }
