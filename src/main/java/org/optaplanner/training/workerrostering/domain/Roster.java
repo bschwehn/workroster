@@ -60,6 +60,15 @@ public class Roster {
         this.timeSlotList = timeSlotList;
         this.employeeList = employeeList;
         this.shiftAssignmentList = shiftAssignmentList;
+        
+        for (ShiftAssignment sa : this.shiftAssignmentList) {
+        	sa.setRoster(this);
+        }
+
+        double expectedHoursForFullTime = getTotalHours() / getTotalEmployeeTime() * 100.0;
+        for (Employee emp : this.employeeList) {
+        	emp.setExpectedHours(expectedHoursForFullTime * emp.getTime() / 100.0);
+        }
     }
 
     public RosterParametrization getRosterParametrization() {
@@ -84,6 +93,14 @@ public class Roster {
 
     public List<ShiftAssignment> getShiftAssignmentList() {
         return shiftAssignmentList;
+    }
+    
+    public double getTotalHours() {
+    	return shiftAssignmentList.stream().mapToDouble(s -> s.getSpot().getHours()).sum();
+    }
+
+    public double getTotalEmployeeTime() {
+    	return employeeList.stream().mapToDouble(e -> e.getTime()).sum();
     }
 
     public List<ShiftAssignment> getEmployeeAssignments(Employee emp) {

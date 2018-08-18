@@ -26,8 +26,9 @@ public class MovableShiftAssignmentFilter implements SelectionFilter<Roster, Shi
 
     @Override
     public boolean accept(ScoreDirector<Roster> scoreDirector, ShiftAssignment shiftAssignment) {
-        return !shiftAssignment.isLockedByUser()
-                && shiftAssignment.getTimeSlot().getTimeSlotState() != TimeSlotState.HISTORY;
+        return true;
+        //!shiftAssignment.isLockedByUser()
+         //       && shiftAssignment.getTimeSlot().getTimeSlotState() != TimeSlotState.HISTORY;
     }
 
 }

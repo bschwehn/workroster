@@ -22,15 +22,50 @@ import java.util.Set;
 public class Employee {
 
     private final String name;
+    private final Double time;
+    // VIPs work less ;)
+    private final Double vipFactor;
     private final Set<Skill> skillSet;
 
+    private Double expectedHours;
     private Set<TimeSlot> unavailableTimeSlotSet;
+    private Set<TimeSlot> undesirableTimeSlotSet;
 
+    public Employee(String name, Set<Skill> skillSet, Double time, Double vipFactor) {
+        this.name = name;
+        this.skillSet = skillSet;
+        this.time = time;
+        this.vipFactor = vipFactor;
+    }
     public Employee(String name, Set<Skill> skillSet) {
         this.name = name;
         this.skillSet = skillSet;
+        this.time = 100.0;
+        this.vipFactor = 0.0;
     }
 
+    public double getVIPFactor() {
+        return vipFactor;
+    }
+    
+    public double getDeviation(Number real) {
+    	return getExpectedHours() - real.doubleValue();
+    }
+    public void setExpectedHours(double expectedHours) {
+    	this.expectedHours = expectedHours;
+    }
+    
+    public double getExpectedHours() {
+    	return expectedHours;
+    }
+
+    public double getTime() {
+        return time;
+    }
+
+    public double getTimeAdjustedCost(double cost) {
+    	return cost * 100.0 / time;
+    }
     public String getName() {
         return name;
     }
@@ -40,10 +75,16 @@ public class Employee {
         for (Skill s : getSkillSet()) {
         	info += s + "|";
         }
+        info += time + "|";
+        info += vipFactor + "|";
         return info;
     }
     public Set<Skill> getSkillSet() {
         return skillSet;
+    }
+
+    public Set<TimeSlot> getUndesirableTimeSlotSet() {
+        return undesirableTimeSlotSet;
     }
 
     public Set<TimeSlot> getUnavailableTimeSlotSet() {
@@ -54,9 +95,19 @@ public class Employee {
         this.unavailableTimeSlotSet = unavailableTimeSlotSet;
     }
 
+    public void setUndesirableTimeSlotSet(Set<TimeSlot> undesirableTimeSlotSet) {
+        this.undesirableTimeSlotSet = undesirableTimeSlotSet;
+    }
+
     public Boolean getHasSkill(Skill skill) {
-    	if ("any".equals(skill.toString())) return true;
     	return getSkillSet().contains(skill);
+    }
+    public Boolean getCanDoJob(Spot spot) {
+    	Skill requiredSkill = spot.getRequiredSkill();
+    	Boolean hasRequiredSkill = 
+    	 ("any".equals(requiredSkill.toString())) || getHasSkill(requiredSkill);
+
+    	return hasRequiredSkill && !getHasSkill(spot.getUnsuitableSkill());
     }
 
     @Override

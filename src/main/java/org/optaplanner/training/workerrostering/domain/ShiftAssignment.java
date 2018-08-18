@@ -16,15 +16,18 @@
 
 package org.optaplanner.training.workerrostering.domain;
 
+import java.io.Serializable;
+
 import org.optaplanner.core.api.domain.entity.PlanningEntity;
 import org.optaplanner.core.api.domain.variable.PlanningVariable;
 import org.optaplanner.training.workerrostering.optional.domain.MovableShiftAssignmentFilter;
 
 @PlanningEntity(movableEntitySelectionFilter = MovableShiftAssignmentFilter.class)
-public class ShiftAssignment {
+public class ShiftAssignment implements Serializable {
 
     private final Spot spot;
     private final TimeSlot timeSlot;
+    private Roster roster;
 
     private boolean lockedByUser = false;
 
@@ -34,6 +37,10 @@ public class ShiftAssignment {
     private ShiftAssignment() {
         spot = null;
         timeSlot = null;
+    }
+    
+    public void setRoster(Roster roster) {
+    	this.roster = roster;
     }
 
     public ShiftAssignment(Spot spot, TimeSlot timeSlot) {
@@ -68,6 +75,14 @@ public class ShiftAssignment {
     @Override
     public String toString() {
         return spot + " " + timeSlot;
+    }
+    
+    public long getCost() {
+    	return (long)(spot.getHours() * 10);
+    }
+
+    public long getAdjustedCost() {
+    	return (long)(spot.getHours() * 1000 / employee.getTime());
     }
 
 }

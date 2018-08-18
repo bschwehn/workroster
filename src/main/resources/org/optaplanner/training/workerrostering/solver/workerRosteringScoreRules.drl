@@ -27,6 +27,10 @@ import org.optaplanner.training.workerrostering.domain.Skill;
 import org.optaplanner.training.workerrostering.domain.Spot;
 import org.optaplanner.training.workerrostering.domain.TimeSlot;
 
+import org.apache.commons.lang3.tuple.Pair;
+import accumulate org.optaplanner.training.workerrostering.solver.drools.functions.LoadBalanceByCountAccumulateFunction loadBalanceByCount;
+import accumulate org.optaplanner.training.workerrostering.solver.drools.functions.LoadBalanceAccumulateFunction loadBalance;
+
 import java.time.temporal.ChronoUnit;
 
 global HardSoftScoreHolder scoreHolder;
@@ -39,7 +43,7 @@ rule "Required skill for a shift"
     when
         ShiftAssignment(
                 employee != null,
-                !getEmployee().getHasSkill(getSpot().getRequiredSkill())
+                !getEmployee().getCanDoJob(getSpot())
                 )
     then
         scoreHolder.addHardConstraintMatch(kcontext, -100);
@@ -83,25 +87,65 @@ rule "No 2 shifts within 10 hours from each other"
         scoreHolder.addHardConstraintMatch(kcontext, -1);
 end
 
+rule "Undesirable time slots for an employee"
+    when
+        ShiftAssignment(
+                employee != null,
+                getEmployee().getUndesirableTimeSlotSet().contains(getTimeSlot()))
+    then
+        scoreHolder.addHardConstraintMatch(kcontext, -1);
+end
 // TODO Pseudo weekends: Get a 48 hours rest every 9 days (so work at most 7 days before each 2-day weekend)
 
 // ############################################################################
 // Soft constraints
 // ############################################################################
 
-rule "Fairness: all employees should work about the same number of shifts"
+rule "Fairness: all employees should work about the same number of shifts, normalized by hours and empoyment status"
+    when
+        accumulate(
+        	$e : Employee() 
+        	and accumulate(
+				$s : ShiftAssignment(employee == $e, $c : getAdjustedCost());
+				$hours : sum($c)
+			);
+
+            $total : loadBalance($hours)
+        )
+        //$f : $e.getDeviation($total);
+    then
+        // Fairness and load balancing trick (see docs): squared to assure correctness in corner cases
+        // Negative to balance it across employees
+        scoreHolder.addSoftConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()));
+end
+
+/*rule "Fairness: all employees should work about the same number of shifts, normalized by hours and empoyment status"
+    when
+        accumulate(
+            ShiftAssignment($e : employee);
+            $total : loadBalanceByCount($e)
+        )
+        //$f : $e.getDeviation($total);
+    then
+        // Fairness and load balancing trick (see docs): squared to assure correctness in corner cases
+        // Negative to balance it across employees
+        scoreHolder.addSoftConstraintMatch(kcontext, - ($total.getZeroDeviationSquaredSumRootMillis()));
+end
+*/
+/*rule "Fairness: all employees should work about the same number of shifts, normalized by hours and empoyment status"
     when
         $e : Employee()
-        accumulate(
+        $total : Number() from accumulate(
             $a : ShiftAssignment(employee == $e);
-            $total : count($a)
+            sum($a.getCost())
         )
+        //$f : $e.getDeviation($total);
     then
         // Fairness and load balancing trick (see docs): squared to assure correctness in corner cases
         // Negative to balance it across employees
         scoreHolder.addSoftConstraintMatch(kcontext, - ($total.intValue() * $total.intValue()));
 end
-
+*/
 /*rule "Affinity: assign an employee to the same spot as much as possible"
     when
         $s : Spot()

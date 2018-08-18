@@ -86,6 +86,9 @@ public class WorkerRosteringSolutionFileWeeksIO {
 	private static final IndexedColors UNAVAILABLE_COLOR = IndexedColors.BLUE_GREY;
 	private static final String UNAVAILABLE_COLOR_STRING= "FF6666FF";
 
+	private static final IndexedColors UNDESIRABLE_COLOR = IndexedColors.GREY_25_PERCENT;
+	private static final String UNDESIRABLE_COLOR_STRING= "FFAAAAAA";
+
 	public String getInputFileExtension() {
 		return "xlsx";
 	}
@@ -123,7 +126,8 @@ public class WorkerRosteringSolutionFileWeeksIO {
 
 			Map<String, Skill> skillMap = skillList.stream().collect(Collectors.toMap(
 					Skill::getName, skill -> skill));
-			List<Spot> spotList = readListSheet("Spots", new String[]{"Name", "Required skill"}, (Row row) -> {
+
+			List<Spot> spotList = readListSheet("Spots", new String[]{"Name", "Required skill", "Unsuitable Skill", "Hours"}, (Row row) -> {
 				String name = row.getCell(0).getStringCellValue();
 				String requiredSkillName = row.getCell(1).getStringCellValue();
 				Skill requiredSkill = skillMap.get(requiredSkillName);
@@ -131,12 +135,30 @@ public class WorkerRosteringSolutionFileWeeksIO {
 					throw new IllegalStateException("The requiredSkillName (" + requiredSkillName
 							+ ") does not exist in the skillList (" + skillList + ").");
 				}
-				return new Spot(name, requiredSkill);
+				Skill unsuitableSkill = null;
+				Cell unCell = row.getCell(2);
+				if (unCell != null) {
+					String unsuitableSkillName = unCell.getStringCellValue();
+					unsuitableSkill = skillMap.get(unsuitableSkillName);
+				}
+
+				Double hours = 8.0;
+				try {
+					Cell cell = row.getCell(3);
+					if (cell != null) {
+						hours = cell.getNumericCellValue();
+					}
+				}
+				catch (IllegalStateException e) {
+					System.out.println("ERROR: Expected number cell for time in employee " + name);
+				}
+				return new Spot(name, requiredSkill, unsuitableSkill, hours);
 			});
 			Map<String, Spot> spotMap = spotList.stream().collect(Collectors.toMap(
 					Spot::getName, spot -> spot));
 			List<TimeSlot> timeSlotList = generateTimeSlotList();
-			List<Employee> employeeList = readListSheet("Employees", new String[]{"Name", "Skills"}, (Row row) -> {
+			List<Employee> employeeList = readListSheet("Employees", 
+					new String[]{"Name", "Skills", "Night Shift", "Time", "VIP", "Unskills"}, (Row row) -> {
 				String name = row.getCell(0).getStringCellValue();
 				Set<Skill> skillSet = Arrays.stream(row.getCell(1).getStringCellValue().split(",")).map((skillName) -> {
 					Skill skill = skillMap.get(skillName);
@@ -146,8 +168,47 @@ public class WorkerRosteringSolutionFileWeeksIO {
 					}
 					return skill;
 				}).collect(Collectors.toSet());
-				Employee employee = new Employee(name, skillSet);
+				String nightShift = row.getCell(2).getStringCellValue();
+				if (!"n".equals(nightShift)) {
+					skillSet.add(skillMap.get("Night"));
+				}
+				String unskillCellValue = row.getCell(5).getStringCellValue();
+				if (unskillCellValue != null && unskillCellValue.length() > 0) {
+					Set<Skill> unSkillSet = Arrays.stream(row.getCell(5).getStringCellValue().split(",")).map((skillName) -> {
+						Skill skill = skillMap.get(skillName);
+						if (skill == null) {
+							throw new IllegalStateException("The skillName (" + skillName
+									+ ") does not exist in the skillList (" + skillList + ").");
+						}
+						return skill;
+					}).collect(Collectors.toSet());
+					skillSet.addAll(unSkillSet);
+				}
+
+				Double time = 100.0;
+				try {
+					Cell cell = row.getCell(3);
+					if (cell != null) {
+						time = cell.getNumericCellValue();
+					}
+				}
+				catch (IllegalStateException e) {
+					System.out.println("ERROR: Expected number cell for time in employee " + name);
+				}
+
+				Double vipFactor = 0.0;
+				try {
+					Cell cell = row.getCell(4);
+					if (cell != null) {
+						vipFactor = cell.getNumericCellValue();
+					}
+				}
+				catch (IllegalStateException e) {
+					System.out.println("ERROR: Expected number cell for VIP in employee " + name);
+				}
+				Employee employee = new Employee(name, skillSet, time, vipFactor);
 				employee.setUnavailableTimeSlotSet(new LinkedHashSet<>());
+				employee.setUndesirableTimeSlotSet(new LinkedHashSet<>());
 				return employee;
 			});
 			Map<String, Employee> employeeMap = employeeList.stream().collect(Collectors.toMap(
@@ -155,7 +216,11 @@ public class WorkerRosteringSolutionFileWeeksIO {
 			List<ShiftAssignment> shiftAssignmentList = generateShiftAssignmentYear(timeSlotList, spotList);
 
 			readGridSheet("Vacation", new String[]{"Name"}, (Row row) -> {
-				String employeeName = row.getCell(0).getStringCellValue();
+				Cell cell = row.getCell(0);
+				if (cell == null) {
+					return null;
+				}
+				String employeeName = cell.getStringCellValue();
 				Employee employee = employeeMap.get(employeeName);
 				if (employee == null) {
 					throw new IllegalStateException("The employeeName (" + employeeName
@@ -167,13 +232,26 @@ public class WorkerRosteringSolutionFileWeeksIO {
 				if (hasStyle(cell, UNAVAILABLE_COLOR)) {
 					Employee employee = pair.getKey();
 					TimeSlot timeSlot = pair.getValue();
+					if (employee.getUndesirableTimeSlotSet().contains(timeSlot)) {
+						employee.getUndesirableTimeSlotSet().remove(timeSlot);
+					}
 					employee.getUnavailableTimeSlotSet().add(timeSlot);
+					employee.getUndesirableTimeSlotSet().add(getNextTimeSlot(timeSlotList, timeSlot));
 				}
 				return null;
 			});
 			return new Roster(rosterParametrization,
 					skillList, spotList, timeSlotList, employeeList,
 					shiftAssignmentList);
+		}
+		
+		private TimeSlot getNextTimeSlot(List<TimeSlot> slots, TimeSlot slot) {
+			for (int i = 0; i < slots.size() - 1; ++i) {
+				if (slots.get(i) == slot) {
+					return slots.get(i+1);
+				}
+			}
+			return null;
 		}
 
 		private List<TimeSlot> generateTimeSlotList() {
@@ -359,6 +437,7 @@ public class WorkerRosteringSolutionFileWeeksIO {
 		private final CellStyle nonExistingStyle;
 		private final CellStyle lockedByUserStyle;
 		private final CellStyle unavailableStyle;
+		private final CellStyle undesirableStyle;
 
 		public RosterWriter(Roster roster, Solver<Roster> solver) {
 			this.roster = roster;
@@ -371,6 +450,7 @@ public class WorkerRosteringSolutionFileWeeksIO {
 			nonExistingStyle = createStyle(NON_EXISTING_COLOR);
 			lockedByUserStyle = createStyle(LOCKED_BY_USER_COLOR);
 			unavailableStyle = createStyle(UNAVAILABLE_COLOR);
+			undesirableStyle = createStyle(UNDESIRABLE_COLOR);
 		}
 
 		public Workbook writeWorkbook() {
@@ -403,12 +483,15 @@ public class WorkerRosteringSolutionFileWeeksIO {
 				cell.setCellValue(employee.getName());
 			});
 			writeGridSheet("Employee roster", new String[]{"Name"}, roster.getEmployeeList(), (Row row, Employee employee) -> {
-				row.createCell(0).setCellValue(employee.getName());
+				row.createCell(0).setCellValue(employee.getInfo());
 			}, (Cell cell, Pair<Employee, TimeSlot> pair) -> {
 				Employee employee = pair.getKey();
 				TimeSlot timeSlot = pair.getValue();
 				if (employee.getUnavailableTimeSlotSet().contains(timeSlot)) {
 					cell.setCellStyle(unavailableStyle);
+				}
+				if (employee.getUndesirableTimeSlotSet().contains(timeSlot)) {
+					cell.setCellStyle(undesirableStyle);
 				}
 				List<ShiftAssignment> shiftAssignmentList = employeeMap.get(pair);
 				if (shiftAssignmentList == null) {
@@ -429,9 +512,12 @@ public class WorkerRosteringSolutionFileWeeksIO {
 				row.createCell(1).setCellValue(timeSlot.getEndDateTime().format(DATE_TIME_FORMATTER));
 				row.createCell(2).setCellValue(timeSlot.getTimeSlotState().name());
 			});
-			writeListSheet("Spots", new String[]{"Name", "Required skill"}, roster.getSpotList(), (Row row, Spot spot) -> {
+			writeListSheet("Spots", new String[]{"Name", "Required skill", "Unsuitable Skill"}, roster.getSpotList(), (Row row, Spot spot) -> {
 				row.createCell(0).setCellValue(spot.getName());
-				row.createCell(1).setCellValue(spot.getRequiredSkill().getName());
+				Skill unsuitableSkill = spot.getUnsuitableSkill();
+				if (unsuitableSkill != null) {
+					row.createCell(2).setCellValue(spot.getUnsuitableSkill().getName());
+				}
 			});
 			writeListSheet("Skills", new String[]{"Name"}, roster.getSkillList(), (Row row, Skill skill) -> {
 				row.createCell(0).setCellValue(skill.getName());
@@ -442,6 +528,9 @@ public class WorkerRosteringSolutionFileWeeksIO {
 
 			summaryHeader.add("Name");
 			summaryHeader.add("Total Shifts");
+			summaryHeader.add("Total Hours");
+			summaryHeader.add("Total Cost");
+			summaryHeader.add("Normalized Total Hours");
 			for (Spot spot : roster.getSpotList()) {
 				summaryHeader.add(spot.getName());
 				if (!shiftTypes.contains(spot.getShiftType())) {
@@ -459,9 +548,15 @@ public class WorkerRosteringSolutionFileWeeksIO {
 					List<ShiftAssignment> er = roster.getEmployeeAssignments(emp);
 
 					int totalShifts =  er.size();
+					double totalHours = er.stream().mapToDouble(s -> s.getSpot().getHours()).sum();
+					double totalCost = er.stream().mapToDouble(s -> s.getCost()).sum();
+					double normalizedHours = totalHours * 100.0 / emp.getTime();
 
 					int cell = 0;
 					row.createCell(++cell).setCellValue(totalShifts);
+					row.createCell(++cell).setCellValue(totalHours);
+					row.createCell(++cell).setCellValue(totalCost);
+					row.createCell(++cell).setCellValue(normalizedHours);
 					for (Spot spot : roster.getSpotList()) {
 						long spotCnt = er.stream().filter(a -> a.getSpot() == spot).count(); 
 						row.createCell(++cell).setCellValue(spotCnt);
@@ -476,28 +571,30 @@ public class WorkerRosteringSolutionFileWeeksIO {
 			ScoreDirector<Roster> score = solver.getScoreDirectorFactory().buildScoreDirector();
 			score.setWorkingSolution(solver.getBestSolution());
 			Collection<ConstraintMatchTotal> matchTotals = score.getConstraintMatchTotals();
-			Map<Object, List<ConstraintMatch>> indictment = score.extractIndictmentMap();
+			Map<Object, Indictment> indictment = score.getIndictmentMap();
 
 			writeListSheet("Score Summary", new String[] {"Rule", "Level", "Score"}, 
 					matchTotals, 
 					(Row row, ConstraintMatchTotal match) -> {
 						row.createCell(0).setCellValue(match.getConstraintName());
-						row.createCell(1).setCellValue(match.getScoreLevel());
-						row.createCell(1).setCellValue( match.getWeightTotalAsNumber().toString());
+						row.createCell(1).setCellValue(match.getScore().toString());
+						//row.createCell(1).setCellValue( match.getWeightTotalAsNumber().toString());
 					});
 
-			writeListSheet("Score Details", new String[] {"Employee", "Rule", "Level", "Score"}, 
+			writeListSheet("Score Details", new String[] {"Employee", "Rule", "Score Lvl 1"}, 
 					roster.getEmployeeList(), 
 					(Row row, Employee emp) -> {
 
 						int cell = 0;
 						row.createCell(cell++).setCellValue(emp.getInfo());
 						if (indictment.containsKey(emp)) {
-							List<ConstraintMatch> matches = indictment.get(emp);
-							for (ConstraintMatch match : matches) { 
+							Indictment matches = indictment.get(emp);
+							for (ConstraintMatch match : matches.getConstraintMatchSet()) { 
+								Number[] levelScores = match.getScore().toLevelNumbers();
 								row.createCell(cell++).setCellValue(match.getConstraintName());
-								row.createCell(cell++).setCellValue(match.getScoreLevel());
-								row.createCell(cell++).setCellValue(match.getWeightAsNumber().toString());
+								for (Number sc : levelScores) {
+									row.createCell(cell++).setCellValue(sc.toString());
+								}
 							}
 						}
 					});

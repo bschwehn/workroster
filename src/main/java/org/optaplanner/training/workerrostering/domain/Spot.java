@@ -20,10 +20,21 @@ public class Spot {
 
     private final String name;
     private final Skill requiredSkill;
+    private final Skill unsuitableSkill;
+    private final Double hours;
+
+    public Spot(String name, Skill requiredSkill, Skill unsuitableSkill, Double hours) {
+        this.name = name;
+        this.requiredSkill = requiredSkill;
+        this.unsuitableSkill = unsuitableSkill;
+        this.hours = hours;
+    }
 
     public Spot(String name, Skill requiredSkill) {
         this.name = name;
         this.requiredSkill = requiredSkill;
+        this.unsuitableSkill = null;
+        this.hours = 8.0;
     }
 
     public String getName() {
@@ -36,6 +47,14 @@ public class Spot {
 
     public Skill getRequiredSkill() {
         return requiredSkill;
+    }
+
+    public Skill getUnsuitableSkill() {
+        return unsuitableSkill;
+    }
+
+    public Double getHours() {
+        return hours;
     }
 
     @Override
