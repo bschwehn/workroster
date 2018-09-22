@@ -10,5 +10,22 @@
   <termination>
     <secondsSpentLimit>300</secondsSpentLimit>
   </termination>
-
+  <constructionHeuristic>
+    <constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
+  </constructionHeuristic>
+  
+  <localSearch>
+    <!--  <unionMoveSelector>
+      <changeMoveSelector/>
+      <swapMoveSelector/>
+    </unionMoveSelector>-->
+    <acceptor>
+      <entityTabuSize>700</entityTabuSize>
+      <lateAcceptanceSize>200</lateAcceptanceSize>
+    </acceptor>
+    <forager>
+      <!--<acceptedCountLimit>2000</acceptedCountLimit>-->
+      <acceptedCountLimit>50</acceptedCountLimit>
+    </forager>
+  </localSearch>
 </solver>

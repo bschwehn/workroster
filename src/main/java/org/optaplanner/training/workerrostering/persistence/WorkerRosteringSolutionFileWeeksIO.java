@@ -84,7 +84,11 @@ public class WorkerRosteringSolutionFileWeeksIO {
 	private static final String LOCKED_BY_USER_COLOR_STRING= "FFFF00CC";
 
 	private static final IndexedColors UNAVAILABLE_COLOR = IndexedColors.BLUE_GREY;
-	private static final String UNAVAILABLE_COLOR_STRING= "FF6666FF";
+	private static final String UNAVAILABLE_COLOR_STRING = "FF6666FF";
+	private static final String UNAVAILABLE_COLOR_STRING2 = "FF0070C0";
+	private static final String UNAVAILABLE_COLOR_STRING3 = "FF4472C4";
+	
+	
 
 	private static final IndexedColors UNDESIRABLE_COLOR = IndexedColors.GREY_25_PERCENT;
 	private static final String UNDESIRABLE_COLOR_STRING= "FFAAAAAA";
@@ -182,6 +186,8 @@ public class WorkerRosteringSolutionFileWeeksIO {
 				if (!"n".equals(nightShift)) {
 					skillSet.add(skillMap.get("Night"));
 				}
+				Object f = row.getCell(5);
+				if (f != null) {
 				String unskillCellValue = row.getCell(5).getStringCellValue();
 				if (unskillCellValue != null && unskillCellValue.length() > 0) {
 					Set<Skill> unSkillSet = Arrays.stream(row.getCell(5).getStringCellValue().split(",")).map((skillName) -> {
@@ -193,6 +199,7 @@ public class WorkerRosteringSolutionFileWeeksIO {
 						return skill;
 					}).collect(Collectors.toSet());
 					skillSet.addAll(unSkillSet);
+				}
 				}
 
 				Double time = 100.0;
@@ -234,8 +241,10 @@ public class WorkerRosteringSolutionFileWeeksIO {
 				String employeeName = cell.getStringCellValue();
 				Employee employee = employeeMap.get(employeeName);
 				if (employee == null) {
-					throw new IllegalStateException("The employeeName (" + employeeName
+					System.out.println("The employeeName (" + employeeName
 							+ ") does not exist in the employeeList (" + employeeList + ").");
+					//throw new IllegalStateException("The employeeName (" + employeeName
+					//		+ ") does not exist in the employeeList (" + employeeList + ").");
 				}
 				return employee;
 			}, timeSlotList, (Pair<Employee, TimeSlot> pair, Cell cell) ->  {
@@ -351,7 +360,10 @@ public class WorkerRosteringSolutionFileWeeksIO {
 										+ " at row (" + i + ") at column (" + j + ").");
 					}
 				}
-				elementList.add(rowMapper.apply(row));
+				E element = rowMapper.apply(row);
+				if (element != null) {
+				elementList.add(element);
+				}
 			}
 			return elementList;
 		}
@@ -421,7 +433,7 @@ public class WorkerRosteringSolutionFileWeeksIO {
 					&& cell.getCellStyle().getFillPattern() == CellStyle.SOLID_FOREGROUND;
 			if (isIndexedMatch) return true;
 
-			if (cell.getCellStyle().getFillBackgroundColor() == 0) {
+			if (cell.getCellStyle().getFillBackgroundColor() == 0 || cell.getCellStyle().getFillBackgroundColor() == 64) {
 				org.apache.poi.xssf.usermodel.XSSFColor col = 
 						(org.apache.poi.xssf.usermodel.XSSFColor)cell.getCellStyle().getFillForegroundColorColor();
 				if (col != null) {
@@ -432,7 +444,9 @@ public class WorkerRosteringSolutionFileWeeksIO {
 						return Objects.equals(col.getARGBHex(), LOCKED_BY_USER_COLOR_STRING);
 					}
 					if (color == UNAVAILABLE_COLOR) {
-						return Objects.equals(col.getARGBHex(), UNAVAILABLE_COLOR_STRING);
+						return Objects.equals(col.getARGBHex(), UNAVAILABLE_COLOR_STRING) ||
+								Objects.equals(col.getARGBHex(), UNAVAILABLE_COLOR_STRING2) || 
+								Objects.equals(col.getARGBHex(), UNAVAILABLE_COLOR_STRING3) ;
 					}
 				}
 			}
@@ -591,11 +605,16 @@ public class WorkerRosteringSolutionFileWeeksIO {
 					row.createCell(++cell).setCellValue(normalizedHours);
 					for (Spot spot : roster.getSpotList()) {
 						long spotCnt = er.stream().filter(a -> a.getSpot() == spot).count(); 
-						row.createCell(++cell).setCellValue(spotCnt);
+
+						long spotCost = er.stream().filter(a -> a.getSpot() == spot).mapToLong(a -> a.getAdjustedCost()).sum();
+						String val = spotCnt + " (" + spotCost + ")";
+						row.createCell(++cell).setCellValue(val);
 					}
 					for (String shiftType : shiftTypes) {
 						long typeCnt = er.stream().filter(a -> a.getSpot().getShiftType().equals(shiftType)).count(); 
-						row.createCell(++cell).setCellValue(typeCnt);
+						long typeCost = er.stream().filter(a -> a.getSpot().getShiftType().equals(shiftType)).mapToLong(a -> a.getAdjustedCost()).sum();
+						String val = typeCnt + " (" + typeCost + ")";
+						row.createCell(++cell).setCellValue(val);
 					}
 			});
 

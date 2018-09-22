@@ -126,7 +126,8 @@ public class Employee {
     }
 
     public Boolean getCanDoFD() {
-    	return getSkillSet().stream().anyMatch(s -> s.getName().equals("Rö") || s.getName().equals("CT"));
+    	//return getSkillSet().stream().anyMatch(s -> s.getName().equals("Ro") || s.getName().equals("CT"));
+    	return true;
     }
 
     public Boolean getCanDoJob(Spot spot) {

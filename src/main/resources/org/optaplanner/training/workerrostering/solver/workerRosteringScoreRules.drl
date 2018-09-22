@@ -74,7 +74,7 @@ rule "At most one shift assignment per day per employee"
         scoreHolder.addHardConstraintMatch(kcontext, -10);
 end
 
-rule "No 2 shifts within 10 hours from each other"
+/*rule "No 2 shifts within 10 hours from each other"
     when
         $s : ShiftAssignment(
                 employee != null,
@@ -88,7 +88,7 @@ rule "No 2 shifts within 10 hours from each other"
     then
         scoreHolder.addHardConstraintMatch(kcontext, -1);
 end
-
+*/
 rule "Undesirable time slots for an employee"
     when
         ShiftAssignment(
@@ -98,7 +98,7 @@ rule "Undesirable time slots for an employee"
         scoreHolder.addMediumConstraintMatch(kcontext, -1000);
 end
 
-rule "Fairness: all employees should work at max 1 shift more than other"
+/*rule "Fairness: all employees should work at max 1 shift more than other"
     when
         accumulate(
         	$e : Employee() 
@@ -115,7 +115,7 @@ rule "Fairness: all employees should work at max 1 shift more than other"
         // Negative to balance it across employees
         scoreHolder.addHardConstraintMatch(kcontext, - ($total.getMaxDeviationGreaterThan(2)));
 end
-
+*/
 rule "good/bad slots before vacation"
     when
         ShiftAssignment(
@@ -124,7 +124,7 @@ rule "good/bad slots before vacation"
                 employee != null,
                 getEmployee().getBeforeVacationTimeSlotSet().contains($slot))
     then
-        scoreHolder.addMediumConstraintMatch(kcontext, $spot.getScoreBeforeVacation());
+        scoreHolder.addMediumConstraintMatch(kcontext, $spot.getScoreBeforeVacation()/1000);
 end
 // ############################################################################
 // Soft constraints
@@ -145,7 +145,7 @@ rule "Fairness: all employees should work about the same number of shifts, norma
     then
         // Fairness and load balancing trick (see docs): squared to assure correctness in corner cases
         // Negative to balance it across employees
-        scoreHolder.addMediumConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()));
+        scoreHolder.addMediumConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()*5));
 end
 
 rule "Fairness: all employees that only do SD should work about the same number of SD, normalized by empoyment status"

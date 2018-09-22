@@ -35,32 +35,32 @@ import org.optaplanner.training.workerrostering.persistence.WorkerRosteringSolut
 
 public class WorkerRosteringApp {
 
-    public static void main(String[] args) {
-        String filename = "roster_anna_2";
-        WorkerRosteringSolutionFileWeeksIO solutionFileIO = new WorkerRosteringSolutionFileWeeksIO();
-        Roster roster = solutionFileIO.read(new File("data/workerrostering/import/" + filename + ".xlsx"));
-        // WorkerRosteringGenerator generator = new WorkerRosteringGenerator();
-         //Roster roster = generator.generateRoster(100, 28, false);
+	public static void main(String[] args) {
+		String filename = "roster_anna_3";
+		WorkerRosteringSolutionFileWeeksIO solutionFileIO = new WorkerRosteringSolutionFileWeeksIO();
+		Roster roster = solutionFileIO.read(new File("data/workerrostering/import/" + filename + ".xlsx"));
+		// WorkerRosteringGenerator generator = new WorkerRosteringGenerator();
+		// Roster roster = generator.generateRoster(100, 28, false);
 
-        // LAB-SOLUTION-START
-        SolverFactory<Roster> solverFactory = SolverFactory.createFromXmlResource(
-                "org/optaplanner/training/workerrostering/solver/workerRosteringSolverConfig.xml");
-        Solver<Roster> solver = solverFactory.buildSolver();
-        roster = solver.solve(roster);
-        // LAB-SOLUTION-END
+		// LAB-SOLUTION-START
+		SolverFactory<Roster> solverFactory = SolverFactory.createFromXmlResource(
+				"org/optaplanner/training/workerrostering/solver/workerRosteringSolverConfig.xml");
+		Solver<Roster> solver = solverFactory.buildSolver();
+		roster = solver.solve(roster);
+		// LAB-SOLUTION-END
 
-        File outputSolutionFile = new File("data/workerrostering/export/" + filename + "-solved"
-                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss", Locale.ENGLISH)) + ".xlsx");
-        solutionFileIO.write(roster, solver, outputSolutionFile);
-        Desktop desktop = Desktop.getDesktop();
-        if (desktop.isSupported(Desktop.Action.OPEN)) {
-            try {
-                desktop.open(outputSolutionFile);
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Could not open outputSolutionFile (" + outputSolutionFile
-                        + ") on this operation system.", e);
-            }
-        }
-    }
+		File outputSolutionFile = new File("data/workerrostering/export/" + filename + "-solved"
+				+ LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss", Locale.ENGLISH)) + ".xlsx");
+		solutionFileIO.write(roster, solver, outputSolutionFile);
+		Desktop desktop = Desktop.getDesktop();
+		if (desktop.isSupported(Desktop.Action.OPEN)) {
+			try {
+				desktop.open(outputSolutionFile);
+			} catch (IOException e) {
+				throw new IllegalArgumentException(
+						"Could not open outputSolutionFile (" + outputSolutionFile + ") on this operation system.", e);
+			}
+		}
+	}
 
 }
