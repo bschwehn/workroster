@@ -8,7 +8,7 @@
   </scoreDirectorFactory>
 
   <termination>
-    <secondsSpentLimit>300</secondsSpentLimit>
+    <secondsSpentLimit>3</secondsSpentLimit>
   </termination>
   <constructionHeuristic>
     <constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
@@ -20,8 +20,8 @@
       <swapMoveSelector/>
     </unionMoveSelector>-->
     <acceptor>
-      <entityTabuSize>700</entityTabuSize>
-      <lateAcceptanceSize>200</lateAcceptanceSize>
+      <entityTabuSize>70</entityTabuSize>
+      <lateAcceptanceSize>20</lateAcceptanceSize>
     </acceptor>
     <forager>
       <!--<acceptedCountLimit>2000</acceptedCountLimit>-->

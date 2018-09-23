@@ -30,15 +30,14 @@ import org.optaplanner.core.api.solver.SolverFactory;
 import org.optaplanner.core.impl.score.director.ScoreDirector;
 import org.optaplanner.training.workerrostering.domain.Roster;
 import org.optaplanner.training.workerrostering.persistence.WorkerRosteringGenerator;
-import org.optaplanner.training.workerrostering.persistence.WorkerRosteringSolutionFileDaysIO;
 import org.optaplanner.training.workerrostering.persistence.WorkerRosteringSolutionFileIO;
 import org.optaplanner.training.workerrostering.persistence.WorkerRosteringSolutionFileWeeksIO;
 
-public class WorkerRosteringApp {
+public class CreateInitialSheet {
 
 	public static void main(String[] args) {
 		String filename = "roster_anna_3";
-		WorkerRosteringSolutionFileDaysIO solutionFileIO = new WorkerRosteringSolutionFileDaysIO();
+		WorkerRosteringSolutionFileWeeksIO solutionFileIO = new WorkerRosteringSolutionFileWeeksIO();
 		Roster roster = solutionFileIO.read(new File("data/workerrostering/import/" + filename + ".xlsx"));
 		// WorkerRosteringGenerator generator = new WorkerRosteringGenerator();
 		// Roster roster = generator.generateRoster(100, 28, false);
