@@ -166,7 +166,7 @@ public class WorkerRosteringSolutionFileWeeksIO {
 				catch (IllegalStateException e) {
 					System.out.println("ERROR: Expected number cell for time in employee " + name);
 				}
-				return new Spot(name, requiredSkill, unsuitableSkill, hours, scoreBeforeWeekend.intValue());
+				return new Spot(name, requiredSkill, unsuitableSkill, hours.intValue(), scoreBeforeWeekend.intValue(), 0);
 			});
 			Map<String, Spot> spotMap = spotList.stream().collect(Collectors.toMap(
 					Spot::getName, spot -> spot));
@@ -560,10 +560,12 @@ public class WorkerRosteringSolutionFileWeeksIO {
 				if (unsuitableSkill != null) {
 					row.createCell(2).setCellValue(spot.getUnsuitableSkill().getName());
 				}
-				Double hours = spot.getHours();
-				row.createCell(3).setCellValue(hours);
+				int days = spot.getDays();
+				row.createCell(3).setCellValue(days);
 				int score = spot.getScoreBeforeVacation();
 				row.createCell(4).setCellValue(score);
+				int offset = spot.getOffset();
+				row.createCell(5).setCellValue(offset);
 			});
 			writeListSheet("Skills", new String[]{"Name"}, roster.getSkillList(), (Row row, Skill skill) -> {
 				row.createCell(0).setCellValue(skill.getName());
@@ -594,7 +596,7 @@ public class WorkerRosteringSolutionFileWeeksIO {
 					List<ShiftAssignment> er = roster.getEmployeeAssignments(emp);
 
 					int totalShifts =  er.size();
-					double totalHours = er.stream().mapToDouble(s -> s.getSpot().getHours()).sum();
+					double totalHours = er.stream().mapToDouble(s -> s.getSpot().getDays()).sum();
 					double totalCost = er.stream().mapToDouble(s -> s.getCost()).sum();
 					double normalizedHours = totalHours * 100.0 / emp.getTime();
 

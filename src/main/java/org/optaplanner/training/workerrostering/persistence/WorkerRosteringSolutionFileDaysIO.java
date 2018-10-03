@@ -136,7 +136,8 @@ public class WorkerRosteringSolutionFileDaysIO {
 			Map<String, Skill> skillMap = skillList.stream().collect(Collectors.toMap(
 					Skill::getName, skill -> skill));
 
-			List<Spot> spotList = readListSheet("Spots", new String[]{"Name", "Required skill", "Unsuitable Skill", "Hours"}, (Row row) -> {
+			List<Spot> spotList = readListSheet("Spots", new String[]{"Name", "Required skill", "Unsuitable Skill",
+					"Days"}, (Row row) -> {
 				String name = row.getCell(0).getStringCellValue();
 				String requiredSkillName = row.getCell(1).getStringCellValue();
 				Skill requiredSkill = skillMap.get(requiredSkillName);
@@ -151,11 +152,11 @@ public class WorkerRosteringSolutionFileDaysIO {
 					unsuitableSkill = skillMap.get(unsuitableSkillName);
 				}
 
-				Double hours = 8.0;
+				Double days = 8.0;
 				try {
 					Cell cell = row.getCell(3);
 					if (cell != null) {
-						hours = cell.getNumericCellValue();
+						days = cell.getNumericCellValue();
 					}
 				}
 				catch (IllegalStateException e) {
@@ -171,7 +172,17 @@ public class WorkerRosteringSolutionFileDaysIO {
 				catch (IllegalStateException e) {
 					System.out.println("ERROR: Expected number cell for time in employee " + name);
 				}
-				return new Spot(name, requiredSkill, unsuitableSkill, hours, scoreBeforeWeekend.intValue());
+				Double offset = 8.0;
+				try {
+					Cell cell = row.getCell(5);
+					if (cell != null) {
+						offset = cell.getNumericCellValue();
+					}
+				}
+				catch (IllegalStateException e) {
+					System.out.println("ERROR: Expected number cell for time in employee " + name);
+				}
+				return new Spot(name, requiredSkill, unsuitableSkill, days.intValue(), scoreBeforeWeekend.intValue(), offset.intValue());
 			});
 			Map<String, Spot> spotMap = spotList.stream().collect(Collectors.toMap(
 					Spot::getName, spot -> spot));
@@ -588,8 +599,8 @@ public class WorkerRosteringSolutionFileDaysIO {
 				if (unsuitableSkill != null) {
 					row.createCell(2).setCellValue(spot.getUnsuitableSkill().getName());
 				}
-				Double hours = spot.getHours();
-				row.createCell(3).setCellValue(hours);
+				int days = spot.getDays();
+				row.createCell(3).setCellValue(days);
 				int score = spot.getScoreBeforeVacation();
 				row.createCell(4).setCellValue(score);
 			});
@@ -602,7 +613,7 @@ public class WorkerRosteringSolutionFileDaysIO {
 
 			summaryHeader.add("Name");
 			summaryHeader.add("Total Shifts");
-			summaryHeader.add("Total Hours");
+			summaryHeader.add("Total Days");
 			summaryHeader.add("Total Cost");
 			summaryHeader.add("Normalized Total Hours");
 			for (Spot spot : roster.getSpotList()) {
@@ -622,13 +633,13 @@ public class WorkerRosteringSolutionFileDaysIO {
 					List<ShiftAssignment> er = roster.getEmployeeAssignments(emp);
 
 					int totalShifts =  er.size();
-					double totalHours = er.stream().mapToDouble(s -> s.getSpot().getHours()).sum();
+					double totalDays = er.stream().mapToDouble(s -> s.getSpot().getDays()).sum();
 					double totalCost = er.stream().mapToDouble(s -> s.getCost()).sum();
-					double normalizedHours = totalHours * 100.0 / emp.getTime();
+					double normalizedHours = totalDays * 100.0 / emp.getTime();
 
 					int cell = 0;
 					row.createCell(++cell).setCellValue(totalShifts);
-					row.createCell(++cell).setCellValue(totalHours);
+					row.createCell(++cell).setCellValue(totalDays);
 					row.createCell(++cell).setCellValue(totalCost);
 					row.createCell(++cell).setCellValue(normalizedHours);
 					for (Spot spot : roster.getSpotList()) {
@@ -785,8 +796,8 @@ public class WorkerRosteringSolutionFileDaysIO {
 				int startColumnNumber = headerTitles.length;
 				List<ShiftAssignment> shifts = roster.getEmployeeAssignments(employee);
 				for (ShiftAssignment shift : shifts) {
-					int startColumn = getColumnNumberForDate(startColumnNumber, shift.getTimeSlot().getStartDateTime().toLocalDate());
-					int endColumn = getColumnNumberForDate(startColumnNumber, shift.getTimeSlot().getEndDateTime().toLocalDate());
+					int startColumn = getColumnNumberForDate(startColumnNumber, shift.getStartDateTime().toLocalDate());
+					int endColumn = getColumnNumberForDate(startColumnNumber, shift.getEndDateTime().toLocalDate());
 					for (int i = startColumn; i < endColumn; ++i) {
 						Cell cell = row.createCell(i);
 						cell.setCellValue(shift.getSpot().toString());

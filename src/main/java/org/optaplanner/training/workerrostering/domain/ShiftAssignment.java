@@ -17,6 +17,7 @@
 package org.optaplanner.training.workerrostering.domain;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 import org.optaplanner.core.api.domain.entity.PlanningEntity;
 import org.optaplanner.core.api.domain.variable.PlanningVariable;
@@ -72,17 +73,24 @@ public class ShiftAssignment implements Serializable {
         this.employee = employee;
     }
 
+    public LocalDateTime getStartDateTime() {
+        return this.getTimeSlot().getStartDateTime().plusDays(this.getSpot().getOffset());
+    }
+    
+    public LocalDateTime getEndDateTime() {
+        return this.getTimeSlot().getStartDateTime().plusDays(this.getSpot().getOffset() + this.getSpot().getDays());
+    }
     @Override
     public String toString() {
         return spot + " " + timeSlot;
     }
     
     public long getCost() {
-    	return (long)(spot.getHours() * 10);
+    	return (long)(spot.getDays() * 10);
     }
 
     public long getAdjustedCost() {
-    	return (long)(spot.getHours() * 100 / employee.getTime());
+    	return (long)(spot.getDays() * 100 / employee.getTime());
     }
 
 }

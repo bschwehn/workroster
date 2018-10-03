@@ -66,7 +66,7 @@ public class Roster {
         	sa.setRoster(this);
         }
 
-        double expectedHoursForFullTime = getTotalHours() / getTotalEmployeeTime() * 100.0;
+        double expectedHoursForFullTime = getTotalDays() / getTotalEmployeeTime() * 100.0;
         for (Employee emp : this.employeeList) {
         	emp.setExpectedHours(expectedHoursForFullTime * emp.getTime() / 100.0);
         }
@@ -96,8 +96,8 @@ public class Roster {
         return shiftAssignmentList;
     }
     
-    public double getTotalHours() {
-    	return shiftAssignmentList.stream().mapToDouble(s -> s.getSpot().getHours()).sum();
+    public double getTotalDays() {
+    	return shiftAssignmentList.stream().mapToDouble(s -> s.getSpot().getDays()).sum();
     }
 
     public double getTotalEmployeeTime() {
@@ -106,7 +106,7 @@ public class Roster {
 
     public List<ShiftAssignment> getEmployeeAssignments(Employee emp) {
     	return shiftAssignmentList.stream()
-    			.filter(s -> s.getEmployee().getName().equals(emp.getName()))
+    			.filter(s -> s.getEmployee() != null && s.getEmployee().getName().equals(emp.getName()))
     			.collect(Collectors.toList());
     }
     public HardMediumSoftScore getScore() {
