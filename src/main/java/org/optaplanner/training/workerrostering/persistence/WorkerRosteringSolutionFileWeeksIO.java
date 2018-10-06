@@ -166,7 +166,7 @@ public class WorkerRosteringSolutionFileWeeksIO {
 				catch (IllegalStateException e) {
 					System.out.println("ERROR: Expected number cell for time in employee " + name);
 				}
-				return new Spot(name, requiredSkill, unsuitableSkill, hours.intValue(), scoreBeforeWeekend.intValue(), 0);
+				return new Spot(name, requiredSkill, unsuitableSkill, hours.intValue(), scoreBeforeWeekend.intValue(), 0, 0);
 			});
 			Map<String, Spot> spotMap = spotList.stream().collect(Collectors.toMap(
 					Spot::getName, spot -> spot));

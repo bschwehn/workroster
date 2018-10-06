@@ -24,15 +24,17 @@ public class Spot {
     private final int days;
     private final int offset;
     private final int scoreBeforeVacation;
+    private final int scoreAfterVacation;
 
     public Spot(String name, Skill requiredSkill, Skill unsuitableSkill, int days, int scoreBeforeVacation,
-    		int offset) {
+    		int scoreAfterVacation, int offset) {
         this.name = name;
         this.requiredSkill = requiredSkill;
         this.unsuitableSkill = unsuitableSkill;
         this.days = days;
         this.offset = offset;
         this.scoreBeforeVacation = scoreBeforeVacation;
+        this.scoreAfterVacation = scoreAfterVacation;
     }
 
     public Spot(String name, Skill requiredSkill) {
@@ -42,6 +44,7 @@ public class Spot {
         this.days = 7;
         this.offset = 0;
         this.scoreBeforeVacation = 0;
+        this.scoreAfterVacation = 0;
     }
 
     public String getName() {
@@ -58,6 +61,10 @@ public class Spot {
 
     public int getScoreBeforeVacation() {
         return scoreBeforeVacation;
+    }
+
+    public int getScoreAfterVacation() {
+        return scoreAfterVacation;
     }
 
     public int getOffset() {

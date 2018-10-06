@@ -89,7 +89,9 @@ public class Roster {
     }
 
     public List<Employee> getEmployeeList() {
-        return employeeList;
+		List<Employee> sorted = employeeList.stream().sorted((a, b) -> a.getName().compareTo(b.getName()))
+				.collect(Collectors.toList());
+		return sorted;
     }
 
     public List<ShiftAssignment> getShiftAssignmentList() {

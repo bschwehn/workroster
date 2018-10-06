@@ -17,7 +17,10 @@
 package org.optaplanner.training.workerrostering.domain;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import org.optaplanner.core.api.domain.entity.PlanningEntity;
 import org.optaplanner.core.api.domain.variable.PlanningVariable;
@@ -28,6 +31,7 @@ public class ShiftAssignment implements Serializable {
 
     private final Spot spot;
     private final TimeSlot timeSlot;
+    private Set<LocalDate> days;
     private Roster roster;
 
     private boolean lockedByUser = false;
@@ -47,12 +51,37 @@ public class ShiftAssignment implements Serializable {
     public ShiftAssignment(Spot spot, TimeSlot timeSlot) {
         this.timeSlot = timeSlot;
         this.spot = spot;
+        generateDays();
     }
 
-    public Spot getSpot() {
+    private void generateDays() {
+    	LocalDate start = this.timeSlot.getStartDateTime().toLocalDate().plusDays(this.spot.getOffset());
+    	LocalDate end = start.plusDays(this.spot.getDays());
+    	
+    	this.days = new LinkedHashSet<>();
+		for (LocalDate date = start; date.isBefore(end); date = date.plusDays(1)) {
+			days.add(date);
+		}
+	}
+
+	public int getShiftVacationOverlap() {
+        return this.getEmployee().getShiftVacationOverlap(this);
+    }
+
+	public int getShiftUndesirableOverlap() {
+        return this.getEmployee().getShiftUndesirableOverlap(this);
+    }
+
+
+	public Spot getSpot() {
         return spot;
     }
 
+	public Set<LocalDate> getDays() {
+        return days;
+    }
+
+    @Deprecated
     public TimeSlot getTimeSlot() {
         return timeSlot;
     }
@@ -73,10 +102,12 @@ public class ShiftAssignment implements Serializable {
         this.employee = employee;
     }
 
+    @Deprecated
     public LocalDateTime getStartDateTime() {
         return this.getTimeSlot().getStartDateTime().plusDays(this.getSpot().getOffset());
     }
     
+    @Deprecated
     public LocalDateTime getEndDateTime() {
         return this.getTimeSlot().getStartDateTime().plusDays(this.getSpot().getOffset() + this.getSpot().getDays());
     }

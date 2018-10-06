@@ -16,6 +16,8 @@
 
 package org.optaplanner.training.workerrostering.domain;
 
+import java.time.LocalDate;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -33,6 +35,10 @@ public class Employee {
     private Set<TimeSlot> unavailableTimeSlotSet;
     private Set<TimeSlot> undesirableTimeSlotSet;
     private Set<TimeSlot> beforeVacationTimeSlotSet;
+    private Set<TimeSlot> afterVacationTimeSlotSet;
+
+    private Set<LocalDate> unavailableDateSet;
+    private Set<LocalDate> undesirableDateSet;
 
     public Employee(String name, Set<Skill> skillSet, Double time, Double vipFactor) {
         this.name = name;
@@ -53,7 +59,34 @@ public class Employee {
     private void init() {
     	this.canDoND = getCanDoND();
     	this.canDoFD = getCanDoFD();
+    	this.unavailableDateSet = new LinkedHashSet<>();
+    	this.undesirableDateSet = new LinkedHashSet<>();
+    	this.unavailableTimeSlotSet = new LinkedHashSet<>();
+    	this.beforeVacationTimeSlotSet = new LinkedHashSet<>();
+    	this.afterVacationTimeSlotSet = new LinkedHashSet<>();
+    	this.undesirableTimeSlotSet = new LinkedHashSet<>();
     }
+
+    public int getShiftUndesirableOverlap(ShiftAssignment sa) {
+    	int overlap = 0;
+    	for (LocalDate shiftDay : sa.getDays()) {
+    		if (this.undesirableDateSet.contains(shiftDay)) {
+    			++overlap;
+    		}
+    	}
+    	return overlap;
+    }
+
+    public int getShiftVacationOverlap(ShiftAssignment sa) {
+    	int overlap = 0;
+    	for (LocalDate shiftDay : sa.getDays()) {
+    		if (this.unavailableDateSet.contains(shiftDay)) {
+    			++overlap;
+    		}
+    	}
+    	return overlap;
+    }
+
     public double getVIPFactor() {
         return vipFactor;
     }
@@ -101,8 +134,20 @@ public class Employee {
         return beforeVacationTimeSlotSet;
     }
 
+    public Set<TimeSlot> getAfterVacationTimeSlotSet() {
+        return afterVacationTimeSlotSet;
+    }
+
     public Set<TimeSlot> getUnavailableTimeSlotSet() {
         return unavailableTimeSlotSet;
+    }
+
+    public Set<LocalDate> getUndesirableDateSet() {
+        return undesirableDateSet;
+    }
+
+    public Set<LocalDate> getUnavailableDateSet() {
+        return unavailableDateSet;
     }
 
     public void setUnavailableTimeSlotSet(Set<TimeSlot> unavailableTimeSlotSet) {

@@ -55,7 +55,7 @@ rule "Unavailable time slots for an employee"
     when
         ShiftAssignment(
                 employee != null,
-                getEmployee().getUnavailableTimeSlotSet().contains(getTimeSlot()))
+                getShiftVacationOverlap() > 0)
     then
         scoreHolder.addHardConstraintMatch(kcontext, -50);
 end
@@ -74,7 +74,7 @@ rule "At most one shift assignment per day per employee"
         scoreHolder.addHardConstraintMatch(kcontext, -10);
 end
 
-/*rule "No 2 shifts within 10 hours from each other"
+rule "No 2 shifts within 10 hours from each other"
     when
         $s : ShiftAssignment(
                 employee != null,
@@ -88,12 +88,12 @@ end
     then
         scoreHolder.addHardConstraintMatch(kcontext, -1);
 end
-*/
+
 rule "Undesirable time slots for an employee"
     when
         ShiftAssignment(
                 employee != null,
-                getEmployee().getUndesirableTimeSlotSet().contains(getTimeSlot()))
+                getShiftUndesirableOverlap() > 0)
     then
         scoreHolder.addMediumConstraintMatch(kcontext, -1000);
 end
@@ -125,6 +125,16 @@ rule "good/bad slots before vacation"
                 getEmployee().getBeforeVacationTimeSlotSet().contains($slot))
     then
         scoreHolder.addMediumConstraintMatch(kcontext, $spot.getScoreBeforeVacation()/1000);
+end
+rule "good/bad slots after vacation"
+    when
+        ShiftAssignment(
+        		$slot : timeSlot,
+        		$spot : spot,
+                employee != null,
+                getEmployee().getAfterVacationTimeSlotSet().contains($slot))
+    then
+        scoreHolder.addMediumConstraintMatch(kcontext, $spot.getScoreAfterVacation()/1000);
 end
 // ############################################################################
 // Soft constraints
