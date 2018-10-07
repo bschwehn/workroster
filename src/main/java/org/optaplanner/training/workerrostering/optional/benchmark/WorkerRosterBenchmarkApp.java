@@ -22,8 +22,8 @@ import org.optaplanner.benchmark.api.PlannerBenchmarkFactory;
 public class WorkerRosterBenchmarkApp {
 
     public static void main(String[] args) {
-        PlannerBenchmarkFactory plannerBenchmarkFactory = PlannerBenchmarkFactory.createFromXmlResource(
-                "org/optaplanner/training/workerrostering/optional/benchmark/workerRosteringBenchmarkConfig.xml");
+        PlannerBenchmarkFactory plannerBenchmarkFactory = PlannerBenchmarkFactory.createFromFreemarkerXmlResource(
+                "org/optaplanner/training/workerrostering/optional/benchmark/workerRosteringBenchmarkConfigTmp.xml.ftl");
         PlannerBenchmark plannerBenchmark = plannerBenchmarkFactory.buildPlannerBenchmark();
         plannerBenchmark.benchmark();
     }

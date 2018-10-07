@@ -73,7 +73,7 @@ import org.optaplanner.training.workerrostering.domain.Spot;
 import org.optaplanner.training.workerrostering.domain.TimeSlot;
 import org.optaplanner.training.workerrostering.domain.TimeSlotState;
 
-public class WorkerRosteringSolutionFileDaysIO {
+public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster> {
 
 	public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm",
 			Locale.ENGLISH);
@@ -118,7 +118,16 @@ public class WorkerRosteringSolutionFileDaysIO {
 					"Failed reading inputSolutionFile (" + inputSolutionFile + ") to create a roster.", e);
 		}
 	}
-
+	  @Override
+	    public void write(Roster roster, File outputSolutionFile) {
+	        Workbook workbook = new RosterWriter(roster).writeWorkbook();
+	        try (FileOutputStream out = new FileOutputStream(outputSolutionFile)) {
+	            workbook.write(out);
+	        } catch (IOException e) {
+	            throw new IllegalStateException("Failed writing outputSolutionFile ("
+	                    + outputSolutionFile + ") for roster (" + roster + ").", e);
+	        }
+	    }
 	private static class RosterReader {
 
 		private final Workbook workbook;
@@ -342,7 +351,7 @@ public class WorkerRosteringSolutionFileDaysIO {
 					if (vacationDays.contains(previousFriday)) continue;
 
 					for (TimeSlot slot : timeSlots) {
-						LocalDate end = slot.getEndDateTime().toLocalDate();
+						LocalDate end = slot.getEndDateTime().toLocalDate().plusDays(-1);
 						if (end.isEqual(previousFriday)) {
 							beforeVacationSlots.add(slot);
 						}
@@ -625,7 +634,8 @@ public class WorkerRosteringSolutionFileDaysIO {
 	}
 
 	public void write(Roster roster, Solver<Roster> solver, File outputSolutionFile) {
-		Workbook workbook = new RosterWriter(roster, solver).writeWorkbook();
+		roster.Solver = solver;
+		Workbook workbook = new RosterWriter(roster).writeWorkbook();
 		try (FileOutputStream out = new FileOutputStream(outputSolutionFile)) {
 			workbook.write(out);
 		} catch (IOException e) {
@@ -647,9 +657,9 @@ public class WorkerRosteringSolutionFileDaysIO {
 		private final CellStyle unavailableStyle;
 		private final CellStyle undesirableStyle;
 
-		public RosterWriter(Roster roster, Solver<Roster> solver) {
+		public RosterWriter(Roster roster) {
 			this.roster = roster;
-			this.solver = solver;
+			this.solver = roster.Solver;
 			workbook = new XSSFWorkbook();
 			headerStyle = workbook.createCellStyle();
 			Font font = workbook.createFont();
@@ -753,7 +763,20 @@ public class WorkerRosteringSolutionFileDaysIO {
 				row.createCell(0).setCellValue(skill.getName());
 			});
 
+
+			writeSummary("Summary", roster.getEmployeeList());
+			// summary by skill
+			Comparator<Employee> cmp = Comparator.comparing(Employee::getSkillsText).thenComparing(Employee::getName);
+					
+			List<Employee> bySkill = roster.getEmployeeList().stream().sorted(cmp).collect(Collectors.toList());
+			writeSummary("Summary_Skill", bySkill);
+			writeScoreSummary();
+
 			writeSkillCalendars();
+			return workbook;
+		}
+
+		private void writeSummary(String sheetName, List<Employee> employees) {
 			List<String> summaryHeader = new ArrayList<String>();
 			List<String> shiftTypes = new ArrayList<String>();
 
@@ -772,7 +795,7 @@ public class WorkerRosteringSolutionFileDaysIO {
 				summaryHeader.add(shiftType);
 			}
 
-			writeListSheet("Summary", summaryHeader.toArray(new String[summaryHeader.size()]), roster.getEmployeeList(),
+			writeListSheet(sheetName, summaryHeader.toArray(new String[summaryHeader.size()]), employees,
 					(Row row, Employee emp) -> {
 						row.createCell(0).setCellValue(emp.getInfo());
 						List<ShiftAssignment> er = roster.getEmployeeAssignments(emp);
@@ -805,35 +828,39 @@ public class WorkerRosteringSolutionFileDaysIO {
 						}
 					});
 
-			ScoreDirector<Roster> score = solver.getScoreDirectorFactory().buildScoreDirector();
-			score.setWorkingSolution(solver.getBestSolution());
-			Collection<ConstraintMatchTotal> matchTotals = score.getConstraintMatchTotals();
-			Map<Object, Indictment> indictment = score.getIndictmentMap();
+		}
 
-			writeListSheet("Score Summary", new String[] { "Rule", "Level", "Score" }, matchTotals,
-					(Row row, ConstraintMatchTotal match) -> {
-						row.createCell(0).setCellValue(match.getConstraintName());
-						row.createCell(1).setCellValue(match.getScore().toString());
-						// row.createCell(1).setCellValue( match.getWeightTotalAsNumber().toString());
-					});
+		private void writeScoreSummary() {
+			if (solver != null) {
+				ScoreDirector<Roster> score = solver.getScoreDirectorFactory().buildScoreDirector();
+				score.setWorkingSolution(solver.getBestSolution());
+				Collection<ConstraintMatchTotal> matchTotals = score.getConstraintMatchTotals();
+				Map<Object, Indictment> indictment = score.getIndictmentMap();
 
-			writeListSheet("Score Details", new String[] { "Employee", "Rule", "Score Lvl 1" },
-					roster.getEmployeeList(), (Row row, Employee emp) -> {
+				writeListSheet("Score Summary", new String[] { "Rule", "Level", "Score" }, matchTotals,
+						(Row row, ConstraintMatchTotal match) -> {
+							row.createCell(0).setCellValue(match.getConstraintName());
+							row.createCell(1).setCellValue(match.getScore().toString());
+							// row.createCell(1).setCellValue( match.getWeightTotalAsNumber().toString());
+						});
 
-						int cell = 0;
-						row.createCell(cell++).setCellValue(emp.getInfo());
-						if (indictment.containsKey(emp)) {
-							Indictment matches = indictment.get(emp);
-							for (ConstraintMatch match : matches.getConstraintMatchSet()) {
-								Number[] levelScores = match.getScore().toLevelNumbers();
-								row.createCell(cell++).setCellValue(match.getConstraintName());
-								for (Number sc : levelScores) {
-									row.createCell(cell++).setCellValue(sc.toString());
+				writeListSheet("Score Details", new String[] { "Employee", "Rule", "Score Lvl 1" },
+						roster.getEmployeeList(), (Row row, Employee emp) -> {
+
+							int cell = 0;
+							row.createCell(cell++).setCellValue(emp.getInfo());
+							if (indictment.containsKey(emp)) {
+								Indictment matches = indictment.get(emp);
+								for (ConstraintMatch match : matches.getConstraintMatchSet()) {
+									Number[] levelScores = match.getScore().toLevelNumbers();
+									row.createCell(cell++).setCellValue(match.getConstraintName());
+									for (Number sc : levelScores) {
+										row.createCell(cell++).setCellValue(sc.toString());
+									}
 								}
 							}
-						}
-					});
-			return workbook;
+						});
+			}
 		}
 
 		private void writeSkillCalendars() {

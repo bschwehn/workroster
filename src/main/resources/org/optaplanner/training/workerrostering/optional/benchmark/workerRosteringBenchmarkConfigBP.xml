@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plannerBenchmark>
+  <benchmarkDirectory>local/data/workerrostering</benchmarkDirectory>
+  <warmUpSecondsSpentLimit>30</warmUpSecondsSpentLimit>
+
+  <inheritedSolverBenchmark>
+    <problemBenchmarks>
+      <solutionFileIOClass>org.optaplanner.training.workerrostering.persistence.WorkerRosteringSolutionFileDaysIO</solutionFileIOClass>
+      <inputSolutionFile>data/workerrostering/import/roster_anna_9.xlsx</inputSolutionFile>
+      <problemStatisticType>BEST_SCORE</problemStatisticType>
+      <singleStatisticType>CONSTRAINT_MATCH_TOTAL_BEST_SCORE</singleStatisticType>
+    </problemBenchmarks>
+    <solver>
+      <scanAnnotatedClasses/>
+
+      <scoreDirectorFactory>
+        <scoreDrl>org/optaplanner/training/workerrostering/solver/workerRosteringScoreRules.drl</scoreDrl>
+      </scoreDirectorFactory>
+
+      <termination>
+        <secondsSpentLimit>60</secondsSpentLimit>
+      </termination>
+    </solver>
+  </inheritedSolverBenchmark>
+  <solverBenchmarkBluePrint>
+    <solverBenchmarkBluePrintType>EVERY_CONSTRUCTION_HEURISTIC_TYPE_WITH_EVERY_LOCAL_SEARCH_TYPE</solverBenchmarkBluePrintType>
+  </solverBenchmarkBluePrint>
+  <solverBenchmark>
+    <name>Only Construction Heuristic</name>
+    <solver>
+      <constructionHeuristic/>
+    </solver>
+  </solverBenchmark>
+</plannerBenchmark>

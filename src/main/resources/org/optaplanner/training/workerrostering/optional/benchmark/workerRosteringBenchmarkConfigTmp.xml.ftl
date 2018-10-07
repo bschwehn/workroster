@@ -19,10 +19,10 @@
       </scoreDirectorFactory>
 
       <termination>
-        <secondsSpentLimit>6</secondsSpentLimit>
+        <secondsSpentLimit>2000</secondsSpentLimit>
       </termination>
     </solver>
-    <subSingleCount>3</subSingleCount>
+    <subSingleCount>1</subSingleCount>
   </inheritedSolverBenchmark>
 
   <solverBenchmark>
@@ -49,8 +49,28 @@
   </solver>
   </solverBenchmark>
 
+  <#list [5, 7] as entityTabuSize>
+	<#list [500, 1000, 2000] as acceptedCountLimit>
+	<solverBenchmark>
+    <name>tabu ${entityTabuSize} ${acceptedCountLimit}</name>
+    <solver>
+      <constructionHeuristic>
+		<constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
+	  </constructionHeuristic>
+  <localSearch>
+   <acceptor>
+          <entityTabuSize>${entityTabuSize}</entityTabuSize>
+        </acceptor>
+        <forager>
+          <acceptedCountLimit>${acceptedCountLimit}</acceptedCountLimit>
+        </forager>
+  </localSearch>
+  </solver>
+  </solverBenchmark>
+  </#list>
+</#list>
   <solverBenchmark>
-    <name>tabu 7  200</name>
+    <name>tabu 7  with LA 200</name>
     <solver>
       <constructionHeuristic>
 		<constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
@@ -59,6 +79,92 @@
    <acceptor>
                 <entityTabuSize>7</entityTabuSize>
       <lateAcceptanceSize>200</lateAcceptanceSize>
+        </acceptor>
+  </localSearch>
+  </solver>
+  </solverBenchmark>
+  <solverBenchmark>
+    <name>tabu 7  with LA 100</name>
+    <solver>
+      <constructionHeuristic>
+		<constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
+	  </constructionHeuristic>
+  <localSearch>
+   <acceptor>
+                <entityTabuSize>7</entityTabuSize>
+      <lateAcceptanceSize>100</lateAcceptanceSize>
+        </acceptor>
+  </localSearch>
+  </solver>
+  </solverBenchmark>
+  <solverBenchmark>
+    <name>tabu 5 th LA 100</name>
+    <solver>
+      <constructionHeuristic>
+		<constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
+	  </constructionHeuristic>
+  <localSearch>
+   <acceptor>
+                <entityTabuSize>5</entityTabuSize>
+      <lateAcceptanceSize>100</lateAcceptanceSize>
+        </acceptor>
+  </localSearch>
+  </solver>
+  </solverBenchmark>
+  
+  <solverBenchmark>
+    <name>tabu 9  with LA 100</name>
+    <solver>
+      <constructionHeuristic>
+		<constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
+	  </constructionHeuristic>
+  <localSearch>
+   <acceptor>
+                <entityTabuSize>9</entityTabuSize>
+      <lateAcceptanceSize>100</lateAcceptanceSize>
+        </acceptor>
+  </localSearch>
+  </solver>
+  </solverBenchmark>
+  
+  <solverBenchmark>
+    <name>tabu 7  with LA 150</name>
+    <solver>
+      <constructionHeuristic>
+		<constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
+	  </constructionHeuristic>
+  <localSearch>
+   <acceptor>
+                <entityTabuSize>7</entityTabuSize>
+      <lateAcceptanceSize>150</lateAcceptanceSize>
+        </acceptor>
+  </localSearch>
+  </solver>
+  </solverBenchmark>
+  <solverBenchmark>
+    <name>tabu 7  with LA 50</name>
+    <solver>
+      <constructionHeuristic>
+		<constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
+	  </constructionHeuristic>
+  <localSearch>
+   <acceptor>
+                <entityTabuSize>7</entityTabuSize>
+      <lateAcceptanceSize>50</lateAcceptanceSize>
+        </acceptor>
+  </localSearch>
+  </solver>
+  </solverBenchmark>
+  <solverBenchmark>
+    <name>tabu 7  with LA 500</name>
+    <solver>
+      <constructionHeuristic>
+		<constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
+	  </constructionHeuristic>
+  <localSearch>
+   <acceptor>
+                <entityTabuSize>7</entityTabuSize>
+      <lateAcceptanceSize>500</lateAcceptanceSize>
         </acceptor>
   </localSearch>
   </solver>

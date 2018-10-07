@@ -8,25 +8,15 @@
   </scoreDirectorFactory>
 
   <termination>
-    <secondsSpentLimit>300</secondsSpentLimit>
+    <secondsSpentLimit>60</secondsSpentLimit>
   </termination>
   <constructionHeuristic>
     <constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
   </constructionHeuristic>
-  
   <localSearch>
-    <!--  <unionMoveSelector>
-      <changeMoveSelector/>
-      <swapMoveSelector/>
-    </unionMoveSelector>-->
-    <localSearchType>TABU_SEARCH</localSearchType>
-    <!--<acceptor>
-      <entityTabuSize>7</entityTabuSize>
-      <lateAcceptanceSize>200</lateAcceptanceSize>
-    </acceptor>-->
-    <forager>
-      <!--<acceptedCountLimit>2000</acceptedCountLimit>-->
-      <acceptedCountLimit>5000</acceptedCountLimit>
-    </forager>
+   <acceptor>
+                <entityTabuSize>9</entityTabuSize>
+      <lateAcceptanceSize>100</lateAcceptanceSize>
+        </acceptor>
   </localSearch>
-</solver>
+  </solver> 

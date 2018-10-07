@@ -115,13 +115,19 @@ public class Employee {
 
     public String getInfo() {
         String info = name + " |";
-        for (Skill s : getSkillSet()) {
-        	info += s + "|";
-        }
+        info += getSkillsText();
         info += time + "|";
         info += vipFactor + "|";
         return info;
     }
+
+	public String getSkillsText() {
+		String text = "";
+		for (Skill s : getSkillSet()) {
+        	text += s + "|";
+        }
+		return text;
+	}
     public Set<Skill> getSkillSet() {
         return skillSet;
     }

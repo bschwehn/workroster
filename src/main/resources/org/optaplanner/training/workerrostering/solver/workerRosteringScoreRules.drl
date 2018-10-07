@@ -95,7 +95,7 @@ rule "Undesirable time slots for an employee"
                 employee != null,
                 getShiftUndesirableOverlap() > 0)
     then
-        scoreHolder.addMediumConstraintMatch(kcontext, -1000);
+        scoreHolder.addHardConstraintMatch(kcontext, -1);
 end
 
 /*rule "Fairness: all employees should work at max 1 shift more than other"
@@ -116,7 +116,7 @@ end
         scoreHolder.addHardConstraintMatch(kcontext, - ($total.getMaxDeviationGreaterThan(2)));
 end
 */
-rule "good/bad slots before vacation"
+/*rule "good/bad slots before vacation"
     when
         ShiftAssignment(
         		$slot : timeSlot,
@@ -124,7 +124,7 @@ rule "good/bad slots before vacation"
                 employee != null,
                 getEmployee().getBeforeVacationTimeSlotSet().contains($slot))
     then
-        scoreHolder.addMediumConstraintMatch(kcontext, $spot.getScoreBeforeVacation()/1000);
+        scoreHolder.addMediumConstraintMatch(kcontext, $spot.getScoreBeforeVacation()/100);
 end
 rule "good/bad slots after vacation"
     when
@@ -134,12 +134,12 @@ rule "good/bad slots after vacation"
                 employee != null,
                 getEmployee().getAfterVacationTimeSlotSet().contains($slot))
     then
-        scoreHolder.addMediumConstraintMatch(kcontext, $spot.getScoreAfterVacation()/1000);
+        scoreHolder.addSoftConstraintMatch(kcontext, $spot.getScoreAfterVacation()/1000);
 end
+*/
 // ############################################################################
 // Soft constraints
 // ############################################################################
-
 rule "Fairness: all employees should work about the same number of shifts, normalized by hours and empoyment status"
     when
         accumulate(
@@ -155,10 +155,10 @@ rule "Fairness: all employees should work about the same number of shifts, norma
     then
         // Fairness and load balancing trick (see docs): squared to assure correctness in corner cases
         // Negative to balance it across employees
-        scoreHolder.addMediumConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()*5));
+        scoreHolder.addMediumConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()));
 end
 
-rule "Fairness: all employees that only do SD should work about the same number of SD, normalized by empoyment status"
+/*rule "Fairness: all employees that only do SD should work about the same number of SD, normalized by empoyment status"
     when
         accumulate(
         	$e : Employee(!canDoFD, !canDoND) 
@@ -175,7 +175,7 @@ rule "Fairness: all employees that only do SD should work about the same number 
         // Negative to balance it across employees
         scoreHolder.addMediumConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()));
 end
-
+*/
 rule "Fairness: all employees that do FD should work about the same number of FD, normalized by empoyment status"
     when
         accumulate(
@@ -193,7 +193,6 @@ rule "Fairness: all employees that do FD should work about the same number of FD
         // Negative to balance it across employees
         scoreHolder.addMediumConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()));
 end
-
 rule "Fairness: all employees that do ND should work about the same number of ND, normalized by empoyment status"
     when
         accumulate(
@@ -211,6 +210,7 @@ rule "Fairness: all employees that do ND should work about the same number of ND
         // Negative to balance it across employees
         scoreHolder.addMediumConstraintMatch(kcontext, - ($total.getMeanDeviationSquaredSumRootMillis()));
 end
+
 
 /*rule "Fairness: all employees should work about the same number of shifts, normalized by hours and empoyment status"
     when

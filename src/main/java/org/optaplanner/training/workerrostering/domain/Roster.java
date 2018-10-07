@@ -27,6 +27,7 @@ import org.optaplanner.core.api.domain.solution.drools.ProblemFactProperty;
 import org.optaplanner.core.api.domain.valuerange.ValueRangeProvider;
 import org.optaplanner.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore;
 import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScore;
+import org.optaplanner.core.api.solver.Solver;
 
 @PlanningSolution
 public class Roster {
@@ -42,6 +43,7 @@ public class Roster {
     @ProblemFactCollectionProperty
     @ValueRangeProvider(id = "employeeRange")
     private List<Employee> employeeList;
+    public Solver<Roster> Solver;
 
     @PlanningEntityCollectionProperty
     private List<ShiftAssignment> shiftAssignmentList;
