@@ -16,6 +16,7 @@
 
 package org.optaplanner.training.workerrostering.persistence;
 
+import java.awt.Color;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -57,6 +58,8 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.drools.compiler.lang.DRL5Expressions.annotationValue_return;
 import org.optaplanner.core.api.solver.Solver;
@@ -73,6 +76,7 @@ import org.optaplanner.training.workerrostering.domain.Spot;
 import org.optaplanner.training.workerrostering.domain.TimeSlot;
 import org.optaplanner.training.workerrostering.domain.TimeSlotState;
 
+
 public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster> {
 
 	public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm",
@@ -85,8 +89,8 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 	private static final IndexedColors NON_EXISTING_COLOR = IndexedColors.GREY_80_PERCENT;
 	private static final String NON_EXISTING_COLOR_STRING = "FF333333";
 
-	private static final IndexedColors LOCKED_BY_USER_COLOR = IndexedColors.VIOLET;
-	private static final String LOCKED_BY_USER_COLOR_STRING = "FFFF00CC";
+	private static final IndexedColors LOCKED_BY_USER_COLOR = IndexedColors.YELLOW;
+	private static final String LOCKED_BY_USER_COLOR_STRING = "FFFFFF00";
 
 	private static final IndexedColors UNAVAILABLE_COLOR = IndexedColors.BLUE_GREY;
 	private static final String UNAVAILABLE_COLOR_STRING = "FF6666FF";
@@ -204,20 +208,48 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 			Map<String, Spot> spotMap = spotList.stream().collect(Collectors.toMap(Spot::getName, spot -> spot));
 			List<TimeSlot> timeSlotList = generateTimeSlotList();
 			List<Employee> employeeList = readListSheet("Employees",
-					new String[] { "Name", "Skills", "Night Shift", "Time", "VIP", "Unskills" }, (Row row) -> {
+					new String[] { "Name", "Skills", "Night Shift", "Time", "VIP", "Unskills", "SD", "FD" }, (Row row) -> {
 						String name = row.getCell(0).getStringCellValue();
-						Set<Skill> skillSet = Arrays.stream(row.getCell(1).getStringCellValue().split(","))
+						Set<Skill> skillSet;
+						Set<Skill> sdSkillSet = Arrays.stream(row.getCell(6).getStringCellValue().split(","))
 								.map((skillName) -> {
-									Skill skill = skillMap.get(skillName);
+									skillName = skillName.trim();
+									if (skillName.equals("NONE")) {
+										return null;
+									}
+									Skill skill = skillMap.get(skillName + "_SD");
 									if (skill == null) {
 										throw new IllegalStateException("The skillName (" + skillName
 												+ ") does not exist in the skillList (" + skillList + ").");
 									}
 									return skill;
-								}).collect(Collectors.toSet());
+								}).filter(s -> s != null).collect(Collectors.toSet());
+						skillSet = sdSkillSet;
+						Set<Skill> fdSkillSet = Arrays.stream(row.getCell(7).getStringCellValue().split(","))
+								.map((skillName) -> {
+									skillName = skillName.trim();
+									Skill skill = skillMap.get(skillName + "_FD");
+									if (skillName.equals("NONE")) {
+										return null;
+									}
+									if (skill == null) {
+										throw new IllegalStateException("The skillName (" + skillName
+												+ ") does not exist in the skillList (" + skillList + ").");
+									}
+									return skill;
+								}).filter(s -> s != null).collect(Collectors.toSet());
+						skillSet.addAll(fdSkillSet);
+						
+						if (skillSet.isEmpty()) {
+							throw new IllegalStateException("Employee " + name + " has no skills");
+						}
 						String nightShift = row.getCell(2).getStringCellValue();
 						if (!"n".equals(nightShift)) {
-							skillSet.add(skillMap.get("Night"));
+							Skill nightSkill = skillMap.get("Night");
+							if (nightSkill == null) {
+								throw new IllegalStateException("Night Skill required");
+							}
+							skillSet.add(nightSkill);
 						}
 						Object f = row.getCell(5);
 						if (f != null) {
@@ -261,41 +293,8 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 			Map<String, Employee> employeeMap = employeeList.stream()
 					.collect(Collectors.toMap(Employee::getName, employee -> employee));
 			List<ShiftAssignment> shiftAssignmentList = generateShiftAssignmentYear(timeSlotList, spotList);
-
-			/*readGridSheet("Vacation", new String[] { "Name" }, (Row row) -> {
-				Cell cell = row.getCell(0);
-				if (cell == null) {
-					return null;
-				}
-				String employeeName = cell.getStringCellValue();
-				employeeName = trimEmployeeName(employeeName);
-				Employee employee = employeeMap.get(employeeName);
-				if (employee == null) {
-					System.out.println("The employeeName (" + employeeName + ") does not exist in the employeeList ("
-							+ employeeList + ").");
-					// throw new IllegalStateException("The employeeName (" + employeeName
-					// + ") does not exist in the employeeList (" + employeeList + ").");
-				}
-				return employee;
-			}, timeSlotList, (Pair<Employee, TimeSlot> pair, Cell cell) -> {
-				if (cell == null)
-					return null;
-				if (hasStyle(cell, UNAVAILABLE_COLOR)) {
-					Employee employee = pair.getKey();
-					TimeSlot timeSlot = pair.getValue();
-					if (employee.getUndesirableTimeSlotSet().contains(timeSlot)) {
-						employee.getUndesirableTimeSlotSet().remove(timeSlot);
-					}
-					employee.getUnavailableTimeSlotSet().add(timeSlot);
-					employee.getUndesirableTimeSlotSet().add(getNextTimeSlot(timeSlotList, timeSlot));
-					TimeSlot previousTimeSlot = getPreviousTimeSlot(timeSlotList, timeSlot);
-					if (!employee.getUnavailableTimeSlotSet().contains(previousTimeSlot)) {
-						employee.getBeforeVacationTimeSlotSet().add(previousTimeSlot);
-					}
-				}
-				return null;
-			});
-			*/
+		
+			// read vacation days only
 			readDayGridSheet("Vacation Calendar", new String[] { "Name" }, (Row row) -> {
 				Cell cell = row.getCell(0);
 				if (cell == null) {
@@ -322,6 +321,46 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 					employee.getUnavailableDateSet().add(date);
 					employee.getUndesirableDateSet().add(date.plusDays(1));
 					LocalDate previousDay = date.plusDays(-1);
+				}
+				return null;
+			});
+			
+			//read fixed shift assignments
+			readDayGridSheet("Vacation Calendar", new String[] { "Name" }, (Row row) -> {
+				Cell cell = row.getCell(0);
+				if (cell == null) {
+					return null;
+				}
+				String employeeName = trimEmployeeName(cell.getStringCellValue());
+				Employee employee = employeeMap.get(employeeName);
+				return employee;
+			}, timeSlotList, (Pair<Employee, LocalDate> pair, Cell cell) -> {
+				if (cell == null)
+					return null;
+				if (hasStyle(cell, LOCKED_BY_USER_COLOR)) {
+					String spotName = cell.getStringCellValue();
+					Employee employee = pair.getKey();
+					LocalDate date = pair.getValue();
+					Spot setSpot = spotList.stream().filter(s -> s.getName().equals(spotName)).findFirst().orElse(null);
+					if (setSpot == null) {
+						throw new IllegalStateException("Employee " + employee.getName() + " fixed to non exisiting spot " + spotName);
+					}
+					System.out.println("Employee " + employee.getName() + " fixed to spot " + setSpot.getName() + 
+							" on " + date.toString());
+					
+					// get spot for date, slow but doesn't matter
+					ShiftAssignment fixedSA = shiftAssignmentList.stream().filter(sa -> 
+						sa.getSpot().getName().equals(setSpot.getName()) &&
+						sa.getDays().contains(date)).findFirst().orElse(null);
+					
+					if (fixedSA == null) {
+						throw new IllegalStateException("Employee " + employee.getName() + 
+								" fixed to existing spot " + spotName + " but not found in ShiftAssignment List");
+					}
+					
+					fixedSA.setEmployee(employee);
+					fixedSA.setLockedByUser(true);
+					
 				}
 				return null;
 			});
@@ -984,6 +1023,10 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 								shiftDay);
 							Cell cell = row.createCell(startColumn);
 							cell.setCellValue(shift.getSpot().toString());
+							
+							if (shift.isLockedByUser()) {
+								cell.setCellStyle(lockedByUserStyle);
+							}
 						}
 					}
 				}

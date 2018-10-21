@@ -8,7 +8,7 @@
   </scoreDirectorFactory>
 
   <termination>
-    <secondsSpentLimit>60</secondsSpentLimit>
+    <secondsSpentLimit>6</secondsSpentLimit>
   </termination>
   <constructionHeuristic>
     <constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
