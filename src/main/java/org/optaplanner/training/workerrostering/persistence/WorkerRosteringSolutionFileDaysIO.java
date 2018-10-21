@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
@@ -87,6 +88,7 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 	public static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
 
 	private static final IndexedColors NON_EXISTING_COLOR = IndexedColors.GREY_80_PERCENT;
+	private static final IndexedColors HOLIDAY_COLOR = IndexedColors.ORANGE;
 	private static final String NON_EXISTING_COLOR_STRING = "FF333333";
 
 	private static final IndexedColors LOCKED_BY_USER_COLOR = IndexedColors.YELLOW;
@@ -207,6 +209,7 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 					});
 			Map<String, Spot> spotMap = spotList.stream().collect(Collectors.toMap(Spot::getName, spot -> spot));
 			List<TimeSlot> timeSlotList = generateTimeSlotList();
+
 			List<Employee> employeeList = readListSheet("Employees",
 					new String[] { "Name", "Skills", "Night Shift", "Time", "VIP", "Unskills", "SD", "FD" }, (Row row) -> {
 						String name = row.getCell(0).getStringCellValue();
@@ -294,6 +297,50 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 					.collect(Collectors.toMap(Employee::getName, employee -> employee));
 			List<ShiftAssignment> shiftAssignmentList = generateShiftAssignmentYear(timeSlotList, spotList);
 		
+			// read extra shifts (holidays...)
+			
+			List<List<ShiftAssignment>> extraShifts = readListSheet("Extra Shifts",
+					new String[] { "Date", "Shifts", "Days" }, (Row row) -> {
+						Date extraDate = row.getCell(0).getDateCellValue();
+						LocalDate extraLocalDate = extraDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+						TimeSlot slot = getTimeSlotForDate(timeSlotList, extraLocalDate);
+						
+						int offset = extraLocalDate.getDayOfYear() - slot.getStartDateTime().getDayOfYear();
+							
+						
+						Set<Spot> spots = Arrays.stream(row.getCell(1).getStringCellValue().split(","))
+								.map((spotName) -> {
+									spotName = spotName.trim();
+									Spot spot = spotMap.get(spotName);
+									if (spot == null) {
+										throw new IllegalStateException("The spot (" + spotName
+												+ ") does not exist in the spotList" );
+									}
+									return spot;
+								}).filter(s -> s != null).collect(Collectors.toSet());
+
+						int days = (int)row.getCell(2).getNumericCellValue();
+						
+						List<ShiftAssignment> sas = new ArrayList<ShiftAssignment>();
+						
+						for (Spot spot : spots) {
+						Spot extraSpot = new Spot("EX_" + spot.getName(), spot.getRequiredSkill(), spot.getUnsuitableSkill(),
+								days, -50000, -50000, offset);
+
+						extraSpot.setIsExtraSpot(true);
+
+						ShiftAssignment sa = new ShiftAssignment(extraSpot, slot);
+						sas.add(sa);
+						}
+
+						return sas;
+					});
+			
+			for (List<ShiftAssignment> sas : extraShifts) {
+				for (ShiftAssignment sa : sas) {
+					shiftAssignmentList.add(sa);
+				}
+			}
 			// read vacation days only
 			readDayGridSheet("Vacation Calendar", new String[] { "Name" }, (Row row) -> {
 				Cell cell = row.getCell(0);
@@ -365,10 +412,25 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 				return null;
 			});
 			
+			
 			calculateVacationTimeSlotsFromDates(timeSlotList, employeeList);
 			calculateBeforeAfterVacationTimeSlots(timeSlotList, employeeList);
 			return new Roster(rosterParametrization, skillList, spotList, timeSlotList, employeeList,
 					shiftAssignmentList);
+		}
+
+		private TimeSlot getTimeSlotForDate(List<TimeSlot> timeSlots, LocalDate date) {
+			for (TimeSlot slot : timeSlots) {
+				int slotStartDayYear = slot.getStartDateTime().getYear() * 10000 + slot.getStartDateTime().getDayOfYear();
+				int slotEndDayYear = slot.getEndDateTime().getYear() * 10000 + slot.getEndDateTime().getDayOfYear();
+				int dateDayYear = date.getYear() * 10000 + date.getDayOfYear();
+
+				if (slotStartDayYear <= dateDayYear && slotEndDayYear >= dateDayYear) {
+					return slot;
+				}
+			}
+			
+			throw new IllegalStateException("Date " + date.toString() + " not matched to timeslot");
 		}
 
 		private void calculateBeforeAfterVacationTimeSlots(List<TimeSlot> timeSlots, List<Employee> employeeList) {
@@ -693,6 +755,7 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 
 		private final CellStyle nonExistingStyle;
 		private final CellStyle lockedByUserStyle;
+		private final CellStyle holidayStyle;
 		private final CellStyle unavailableStyle;
 		private final CellStyle undesirableStyle;
 
@@ -707,6 +770,7 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 			nonExistingStyle = createStyle(NON_EXISTING_COLOR);
 			lockedByUserStyle = createStyle(LOCKED_BY_USER_COLOR);
 			unavailableStyle = createStyle(UNAVAILABLE_COLOR);
+			holidayStyle = createStyle(HOLIDAY_COLOR);
 			undesirableStyle = createStyle(UNDESIRABLE_COLOR);
 		}
 
@@ -823,7 +887,9 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 			summaryHeader.add("Total Shifts");
 			summaryHeader.add("Total Days");
 			summaryHeader.add("Total Cost");
-			summaryHeader.add("Normalized Total Hours");
+			summaryHeader.add("Normalized Total Days");
+			summaryHeader.add("Total Days Extra");
+			summaryHeader.add("Total Cost Extra");
 			for (Spot spot : roster.getSpotList()) {
 				summaryHeader.add(spot.getName());
 				if (!shiftTypes.contains(spot.getShiftType())) {
@@ -842,13 +908,17 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 						int totalShifts = er.size();
 						double totalDays = er.stream().mapToDouble(s -> s.getSpot().getDays()).sum();
 						double totalCost = er.stream().mapToDouble(s -> s.getCost()).sum();
-						double normalizedHours = totalDays * 100.0 / emp.getTime();
+						double normalizedDays = totalDays * 100.0 / emp.getTime();
+						double totalDaysExtra = er.stream().filter(s -> s.getSpot().getIsExtraSpot()).mapToDouble(s -> s.getSpot().getDays()).sum();
+						double totalCostExtra = er.stream().filter(s -> s.getSpot().getIsExtraSpot()).mapToDouble(s -> s.getCost()).sum();
 
 						int cell = 0;
 						row.createCell(++cell).setCellValue(totalShifts);
 						row.createCell(++cell).setCellValue(totalDays);
 						row.createCell(++cell).setCellValue(totalCost);
-						row.createCell(++cell).setCellValue(normalizedHours);
+						row.createCell(++cell).setCellValue(normalizedDays);
+						row.createCell(++cell).setCellValue(totalDaysExtra);
+						row.createCell(++cell).setCellValue(totalCostExtra);
 						for (Spot spot : roster.getSpotList()) {
 							long spotCnt = er.stream().filter(a -> a.getSpot() == spot).count();
 
@@ -1026,6 +1096,9 @@ public class WorkerRosteringSolutionFileDaysIO implements SolutionFileIO<Roster>
 							
 							if (shift.isLockedByUser()) {
 								cell.setCellStyle(lockedByUserStyle);
+							}
+							else if (shift.getSpot().getIsExtraSpot()) {
+								cell.setCellStyle(holidayStyle);
 							}
 						}
 					}

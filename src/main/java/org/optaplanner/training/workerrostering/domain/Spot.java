@@ -22,6 +22,7 @@ public class Spot {
     private final Skill requiredSkill;
     private final Skill unsuitableSkill;
     private final int days;
+    private boolean isExtraSpot;
     private final int offset;
     private final int scoreBeforeVacation;
     private final int scoreAfterVacation;
@@ -79,6 +80,13 @@ public class Spot {
         return days;
     }
 
+    public Boolean getIsExtraSpot() {
+        return isExtraSpot;
+    }
+
+    public void setIsExtraSpot(boolean isExtra) {
+        isExtraSpot = isExtra;
+    }
     @Override
     public String toString() {
         return name;
